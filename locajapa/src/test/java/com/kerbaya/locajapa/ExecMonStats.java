@@ -22,13 +22,12 @@ public final class ExecMonStats
 {
 	private int execCount;
 	
-	public void incrementExecCount()
-	{
-		execCount++;
-	}
-	
 	public int getExecCount()
 	{
 		return execCount;
+	}
+	public void incrementExecCount()
+	{
+		execCount++;
 	}
 }

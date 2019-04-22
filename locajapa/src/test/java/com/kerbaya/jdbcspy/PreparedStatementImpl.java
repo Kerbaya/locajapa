@@ -43,9 +43,9 @@ class PreparedStatementImpl<S extends PreparedStatement, I extends PreparedState
 		extends StatementImpl<S, I> implements PreparedStatement
 {
 	
-	public PreparedStatementImpl(S wrapped, I ix)
+	public PreparedStatementImpl(S wrapped, I ix, ConnectionImpl connection)
 	{
-		super(wrapped, ix);
+		super(wrapped, ix, connection);
 	}
 
 	@Override

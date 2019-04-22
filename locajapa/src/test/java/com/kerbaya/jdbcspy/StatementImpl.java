@@ -28,9 +28,12 @@ class StatementImpl<S extends Statement, I extends StatementInterceptor<? super 
 		extends WrapperImpl<S, I> 
 		implements Statement
 {
-	public StatementImpl(S wrapped, I ix)
+	private final ConnectionImpl connection;
+	
+	public StatementImpl(S wrapped, I ix, ConnectionImpl connection)
 	{
 		super(wrapped, ix);
+		this.connection = connection;
 	}
 
 	@Override
@@ -198,7 +201,7 @@ class StatementImpl<S extends Statement, I extends StatementInterceptor<? super 
 	@Override
 	public final Connection getConnection() throws SQLException
 	{
-		return ix.getConnection(wrapped);
+		return connection;
 	}
 
 	@Override

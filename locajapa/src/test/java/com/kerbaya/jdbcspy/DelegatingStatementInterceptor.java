@@ -21,264 +21,273 @@ package com.kerbaya.jdbcspy;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
-import java.sql.Statement;
 
-public class StatementInterceptorSupport<S extends Statement>
-		extends WrapperInterceptorSupport<S>
-		implements StatementInterceptor<S>
+public abstract class DelegatingStatementInterceptor<S> implements StatementInterceptor<S>
 {
+	protected abstract StatementInterceptor<? super S> getDelegate();
+	
+	@Override
+	public <T> T unwrap(S subject, Class<T> iface) throws SQLException
+	{
+		return getDelegate().unwrap(subject, iface);
+	}
+
+	@Override
+	public boolean isWrapperFor(S subject, Class<?> iface) throws SQLException
+	{
+		return getDelegate().isWrapperFor(subject, iface);
+	}
 
 	@Override
 	public ResultSet executeQuery(S subject, String sql) throws SQLException
 	{
-		return subject.executeQuery(sql);
+		return getDelegate().executeQuery(subject, sql);
 	}
 
 	@Override
 	public int executeUpdate(S subject, String sql) throws SQLException
 	{
-		return subject.executeUpdate(sql);
+		return getDelegate().executeUpdate(subject, sql);
 	}
 
 	@Override
 	public void close(S subject) throws SQLException
 	{
-		subject.close();
+		getDelegate().close(subject);
 	}
 
 	@Override
 	public int getMaxFieldSize(S subject) throws SQLException
 	{
-		return subject.getMaxFieldSize();
+		return getDelegate().getMaxFieldSize(subject);
 	}
 
 	@Override
 	public void setMaxFieldSize(S subject, int max) throws SQLException
 	{
-		subject.setMaxFieldSize(max);
+		getDelegate().setMaxFieldSize(subject, max);
 	}
 
 	@Override
 	public int getMaxRows(S subject) throws SQLException
 	{
-		return subject.getMaxRows();
+		return getDelegate().getMaxRows(subject);
 	}
 
 	@Override
 	public void setMaxRows(S subject, int max) throws SQLException
 	{
-		subject.setMaxRows(max);
+		getDelegate().setMaxRows(subject, max);
 	}
 
 	@Override
 	public void setEscapeProcessing(S subject, boolean enable)
 			throws SQLException
 	{
-		subject.setEscapeProcessing(enable);
+		getDelegate().setEscapeProcessing(subject, enable);
 	}
 
 	@Override
 	public int getQueryTimeout(S subject) throws SQLException
 	{
-		return subject.getQueryTimeout();
+		return getDelegate().getQueryTimeout(subject);
 	}
 
 	@Override
 	public void setQueryTimeout(S subject, int seconds) throws SQLException
 	{
-		subject.setQueryTimeout(seconds);
+		getDelegate().setQueryTimeout(subject, seconds);
 	}
 
 	@Override
 	public void cancel(S subject) throws SQLException
 	{
-		subject.cancel();
+		getDelegate().cancel(subject);
 	}
 
 	@Override
 	public SQLWarning getWarnings(S subject) throws SQLException
 	{
-		return subject.getWarnings();
+		return getDelegate().getWarnings(subject);
 	}
 
 	@Override
 	public void clearWarnings(S subject) throws SQLException
 	{
-		subject.clearWarnings();
+		getDelegate().clearWarnings(subject);
 	}
 
 	@Override
 	public void setCursorName(S subject, String name) throws SQLException
 	{
-		subject.setCursorName(name);
+		getDelegate().setCursorName(subject, name);
 	}
 
 	@Override
 	public boolean execute(S subject, String sql) throws SQLException
 	{
-		return subject.execute(sql);
+		return getDelegate().execute(subject, sql);
 	}
 
 	@Override
 	public ResultSet getResultSet(S subject) throws SQLException
 	{
-		return subject.getResultSet();
+		return getDelegate().getResultSet(subject);
 	}
 
 	@Override
 	public int getUpdateCount(S subject) throws SQLException
 	{
-		return subject.getUpdateCount();
+		return getDelegate().getUpdateCount(subject);
 	}
 
 	@Override
 	public boolean getMoreResults(S subject) throws SQLException
 	{
-		return subject.getMoreResults();
+		return getDelegate().getMoreResults(subject);
 	}
 
 	@Override
 	public void setFetchDirection(S subject, int direction) throws SQLException
 	{
-		subject.setFetchDirection(direction);
+		getDelegate().setFetchDirection(subject, direction);
 	}
 
 	@Override
 	public int getFetchDirection(S subject) throws SQLException
 	{
-		return subject.getFetchDirection();
+		return getDelegate().getFetchDirection(subject);
 	}
 
 	@Override
 	public void setFetchSize(S subject, int rows) throws SQLException
 	{
-		subject.setFetchSize(rows);
+		getDelegate().setFetchSize(subject, rows);
 	}
 
 	@Override
 	public int getFetchSize(S subject) throws SQLException
 	{
-		return subject.getFetchSize();
+		return getDelegate().getFetchSize(subject);
 	}
 
 	@Override
 	public int getResultSetConcurrency(S subject) throws SQLException
 	{
-		return subject.getResultSetConcurrency();
+		return getDelegate().getResultSetConcurrency(subject);
 	}
 
 	@Override
 	public int getResultSetType(S subject) throws SQLException
 	{
-		return subject.getResultSetType();
+		return getDelegate().getResultSetType(subject);
 	}
 
 	@Override
 	public void addBatch(S subject, String sql) throws SQLException
 	{
-		subject.addBatch(sql);
+		getDelegate().addBatch(subject, sql);
 	}
 
 	@Override
 	public void clearBatch(S subject) throws SQLException
 	{
-		subject.clearBatch();
+		getDelegate().clearBatch(subject);
 	}
 
 	@Override
 	public int[] executeBatch(S subject) throws SQLException
 	{
-		return subject.executeBatch();
+		return getDelegate().executeBatch(subject);
 	}
 
 	@Override
 	public boolean getMoreResults(S subject, int current) throws SQLException
 	{
-		return subject.getMoreResults(current);
+		return getDelegate().getMoreResults(subject, current);
 	}
 
 	@Override
 	public ResultSet getGeneratedKeys(S subject) throws SQLException
 	{
-		return subject.getGeneratedKeys();
+		return getDelegate().getGeneratedKeys(subject);
 	}
 
 	@Override
 	public int executeUpdate(S subject, String sql, int autoGeneratedKeys)
 			throws SQLException
 	{
-		return subject.executeUpdate(sql, autoGeneratedKeys);
+		return getDelegate().executeUpdate(subject, sql, autoGeneratedKeys);
 	}
 
 	@Override
 	public int executeUpdate(S subject, String sql, int[] columnIndexes)
 			throws SQLException
 	{
-		return subject.executeUpdate(sql, columnIndexes);
+		return getDelegate().executeUpdate(subject, sql, columnIndexes);
 	}
 
 	@Override
 	public int executeUpdate(S subject, String sql, String[] columnNames)
 			throws SQLException
 	{
-		return subject.executeUpdate(sql, columnNames);
+		return getDelegate().executeUpdate(subject, sql, columnNames);
 	}
 
 	@Override
 	public boolean execute(S subject, String sql, int autoGeneratedKeys)
 			throws SQLException
 	{
-		return subject.execute(sql, autoGeneratedKeys);
+		return getDelegate().execute(subject, sql, autoGeneratedKeys);
 	}
 
 	@Override
 	public boolean execute(S subject, String sql, int[] columnIndexes)
 			throws SQLException
 	{
-		return subject.execute(sql, columnIndexes);
+		return getDelegate().execute(subject, sql, columnIndexes);
 	}
 
 	@Override
 	public boolean execute(S subject, String sql, String[] columnNames)
 			throws SQLException
 	{
-		return subject.execute(sql, columnNames);
+		return getDelegate().execute(subject, sql, columnNames);
 	}
 
 	@Override
 	public int getResultSetHoldability(S subject) throws SQLException
 	{
-		return subject.getResultSetHoldability();
+		return getDelegate().getResultSetHoldability(subject);
 	}
 
 	@Override
 	public boolean isClosed(S subject) throws SQLException
 	{
-		return subject.isClosed();
+		return getDelegate().isClosed(subject);
 	}
 
 	@Override
 	public void setPoolable(S subject, boolean poolable) throws SQLException
 	{
-		subject.setPoolable(poolable);
+		getDelegate().setPoolable(subject, poolable);
 	}
 
 	@Override
 	public boolean isPoolable(S subject) throws SQLException
 	{
-		return subject.isPoolable();
+		return getDelegate().isPoolable(subject);
 	}
 
 	@Override
 	public void closeOnCompletion(S subject) throws SQLException
 	{
-		subject.closeOnCompletion();
+		getDelegate().closeOnCompletion(subject);
 	}
 
 	@Override
 	public boolean isCloseOnCompletion(S subject) throws SQLException
 	{
-		return subject.isCloseOnCompletion();
+		return getDelegate().isCloseOnCompletion(subject);
 	}
-
 }

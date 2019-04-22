@@ -33,8 +33,6 @@ public class DBExecutor implements AutoCloseable
 {
 	private final Connection con;
 	private final EntityManagerFactory emf;
-	private final EntityManager em;
-	private final EntityTransaction tx;
 	
 	public interface Run<T>
 	{
@@ -46,47 +44,21 @@ public class DBExecutor implements AutoCloseable
 		V run(T db) throws Exception;
 	}
 	
-	public DBExecutor(
-			String persistenceUnitName, String jdbcDriver, String jdbcUrl) 
-			throws SQLException, ClassNotFoundException
+	public DBExecutor(String persistenceUnitName, String jdbcUrl) 
+			throws SQLException
 	{
 		boolean ok = false;
-		Class.forName(jdbcDriver);
 		con = DriverManager.getConnection(jdbcUrl);
 		try
 		{
 			con.setAutoCommit(false);
-			Map<String, String> props = new HashMap<>(4);
-			props.put("javax.persistence.jdbc.driver", jdbcDriver);
+			Map<String, String> props = new HashMap<>(2);
 			props.put("javax.persistence.jdbc.url", jdbcUrl);
-			props.put("hibernate.connection.driver_class", jdbcDriver);
 			props.put("hibernate.connection.url", jdbcUrl);
 			emf = Persistence.createEntityManagerFactory(
 					persistenceUnitName, 
 					props);
-			try
-			{
-				em = emf.createEntityManager();
-				try
-				{
-					tx = em.getTransaction();
-					ok = true;
-				}
-				finally
-				{
-					if (!ok)
-					{
-						em.close();
-					}
-				}
-			}
-			finally
-			{
-				if (!ok)
-				{
-					emf.close();
-				}
-			}
+			ok = true;
 		}
 		finally
 		{
@@ -102,18 +74,11 @@ public class DBExecutor implements AutoCloseable
 	{
 		try
 		{
-			em.close();
+			emf.close();
 		}
 		finally
 		{
-			try
-			{
-				emf.close();
-			}
-			finally
-			{
-				con.close();
-			}
+			con.close();
 		}
 	}
 	
@@ -123,7 +88,7 @@ public class DBExecutor implements AutoCloseable
 			@Override
 			public Void run(EntityManager db) throws Exception
 			{
-				run.run(em);
+				run.run(db);
 				return null;
 			}
 		});
@@ -133,19 +98,28 @@ public class DBExecutor implements AutoCloseable
 	{
 		final V result;
 		boolean committed = false;
-		tx.begin();
+		EntityManager em = emf.createEntityManager();
 		try
 		{
-			result = run.run(em);
-			tx.commit();
-			committed = true;
+			EntityTransaction tx = em.getTransaction();
+			tx.begin();
+			try
+			{
+				result = run.run(em);
+				tx.commit();
+				committed = true;
+			}
+			finally
+			{
+				if (!committed && tx.isActive())
+				{
+					tx.rollback();
+				}
+			}
 		}
 		finally
 		{
-			if (!committed && tx.isActive())
-			{
-				tx.rollback();
-			}
+			em.close();
 		}
 		return result;
 	}

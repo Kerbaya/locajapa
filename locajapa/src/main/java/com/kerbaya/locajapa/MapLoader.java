@@ -157,10 +157,17 @@ public class MapLoader
 		List<? extends Localizable<?>> queryResults = 
 				q.setParameter(ID_SET_PARAM, batch.keySet())
 						.getResultList();
+		Object lastId = null;
 		for (Localizable<?> queryResult: queryResults)
 		{
-			batch.remove(queryResult.getId()).setLocalized(
+			Object queryResultId = queryResult.getId();
+			if (lastId != null && lastId.equals(queryResultId))
+			{
+				continue;
+			}
+			batch.remove(queryResultId).setLocalized(
 					queryResult.getLocalized());
+			lastId = queryResultId;
 		}
 		
 		for (MapImpl<?> batchEntry: batch.values())

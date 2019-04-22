@@ -44,9 +44,10 @@ final class CallableStatementImpl
 	
 	public CallableStatementImpl(
 			CallableStatement wrapped,
-			CallableStatementInterceptor<? super CallableStatement> ix)
+			CallableStatementInterceptor<? super CallableStatement> ix,
+			ConnectionImpl connection)
 	{
-		super(wrapped, ix);
+		super(wrapped, ix, connection);
 	}
 	
 	@Override

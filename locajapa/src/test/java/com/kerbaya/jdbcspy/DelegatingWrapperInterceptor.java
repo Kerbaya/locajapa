@@ -16,21 +16,24 @@
  * You should have received a copy of the GNU General Public License
  * along with locajapa.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.kerbaya.locajapa;
+package com.kerbaya.jdbcspy;
 
-import java.sql.PreparedStatement;
+import java.sql.SQLException;
 
-import com.kerbaya.jdbcspy.PreparedStatementImpl;
-
-public class ExecMonPreparedStatement 
-		extends PreparedStatementImpl<PreparedStatement>
+public abstract class DelegatingWrapperInterceptor<W> 
+		implements WrapperInterceptor<W>
 {
-	private final ExecMonStats stats;
-	
-	public ExecMonPreparedStatement(
-			ExecMonStats stats, PreparedStatement wrapped)
+	protected abstract WrapperInterceptor<? super W> getDelegate();
+
+	@Override
+	public <T> T unwrap(W subject, Class<T> iface) throws SQLException
 	{
-		super(wrapped);
-		this.stats = stats;
+		return getDelegate().unwrap(subject, iface);
+	}
+
+	@Override
+	public boolean isWrapperFor(W subject, Class<?> iface) throws SQLException
+	{
+		return getDelegate().isWrapperFor(subject, iface);
 	}
 }

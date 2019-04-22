@@ -18,7 +18,6 @@
  */
 package com.kerbaya.jdbcspy;
 
-import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
@@ -79,8 +78,6 @@ public interface StatementInterceptor<S> extends WrapperInterceptor<S>
 	void clearBatch(S subject) throws SQLException;
 
 	int[] executeBatch(S subject) throws SQLException;
-
-	Connection getConnection(S subject) throws SQLException;
 
 	boolean getMoreResults(S subject, int current) throws SQLException;
 
