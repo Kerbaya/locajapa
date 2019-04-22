@@ -1,0 +1,4 @@
+SELECT l
+FROM ${entityName} l
+LEFT JOIN FETCH l.localized
+WHERE l.id IN (:idSet)
