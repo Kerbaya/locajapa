@@ -18,32 +18,19 @@
  */
 package com.kerbaya.locajapa;
 
-import java.util.Collection;
+import java.sql.PreparedStatement;
 
-/**
- * Specifies the general contract to which localizable entities must conform.
- * 
- * @author Glenn.Lane@kerbaya.com
- *
- * @param <T>
- */
-public interface Localizable<T>
+import com.kerbaya.jdbcspy.PreparedStatementImpl;
+
+public class ExecMonPreparedStatement 
+		extends PreparedStatementImpl<PreparedStatement>
 {
-	/**
-	 * Returns the entity ID.  Must be mapped in JPA (addressable in JPQL as 
-	 * {@code entity.id})
-	 * 
-	 * @return
-	 * Entity ID
-	 */
-	Object getId();
+	private final ExecMonStats stats;
 	
-	/**
-	 * Returns the localized versions.  The relationship must be mapped in JPA 
-	 * (addressable in JPQL as {@code entity.localized})
-	 * 
-	 * @return
-	 * The localized versions
-	 */
-	Collection<? extends Localized<? extends T>> getLocalized();
+	public ExecMonPreparedStatement(
+			ExecMonStats stats, PreparedStatement wrapped)
+	{
+		super(wrapped);
+		this.stats = stats;
+	}
 }

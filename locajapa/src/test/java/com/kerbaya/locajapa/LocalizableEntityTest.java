@@ -18,7 +18,9 @@
  */
 package com.kerbaya.locajapa;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
@@ -33,11 +35,22 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.kerbaya.locajapa.DBExecutor.Run;
+import com.kerbaya.jdbcspy.CallableStatementInterceptor;
+import com.kerbaya.jdbcspy.CallableStatementInterceptorSupport;
+import com.kerbaya.jdbcspy.ConnectionInterceptorSupport;
+import com.kerbaya.jdbcspy.DriverImpl;
+import com.kerbaya.jdbcspy.StatementInterceptorSupport;
 import com.kerbaya.locajapa.DBExecutor.Call;
 
 public class LocalizableEntityTest
 {
+	private static final StatementInterceptorSupport<Statement> STMT_IX = new StatementInterceptorSupport<Statement>() {
+	};
+	
 	private static DBExecutor EX;
+	private static ExecMonStats STATS;
+	
+	
 	
 	@BeforeClass
 	public static void createDb() throws Exception
@@ -46,6 +59,16 @@ public class LocalizableEntityTest
 		{
 			throw new IllegalStateException();
 		}
+		CallableStatementInterceptor<CallableStatement> ix = new CallableStatementInterceptorSupport() {
+			
+		};
+		STATS = new ExecMonStats();
+		DriverManager.registerDriver(new DriverImpl(
+				"jdbc:spy:",
+				null,
+				ix,
+				ix,
+				ix));
 		DBExecutor ex = new DBExecutor(
 				"locajapa", 
 				"com.kerbaya.locajapa.DriverImpl", 
@@ -62,17 +85,14 @@ public class LocalizableEntityTest
 						stmt.executeUpdate(
 								"CREATE TABLE LocalizableString ("
 								+ "id BIGINT NOT NULL GENERATED ALWAYS AS IDENTITY, "
-//								+ "lame BIGINT, "
 								+ "PRIMARY KEY (id))");
 						stmt.executeUpdate(
 								"CREATE TABLE LocalizedString ("
-//								+ "id BIGINT NOT NULL GENERATED ALWAYS AS IDENTITY, "
 								+ "localizable_id BIGINT NOT NULL, "
-								+ "locale VARCHAR(35) NOT NULL, "
+								+ "languageTag VARCHAR(35) NOT NULL, "
+								+ "languageLevel INT NOT NULL, "
 								+ "value CLOB NOT NULL, "
-								+ "PRIMARY KEY (localizable_id, locale), "
-//								+ "PRIMARY KEY (id), "
-//								+ "UNIQUE (localizable_id, locale), "
+								+ "PRIMARY KEY (localizable_id, languageTag), "
 								+ "FOREIGN KEY (localizable_id) REFERENCES LocalizableString (id))");
 					}
 				}
@@ -112,11 +132,11 @@ public class LocalizableEntityTest
 			final LocalizableString ls = new LocalizableString();
 			LocalizedString l = new LocalizedString();
 			l.setLocalizable(ls);
-			l.setLocale(Locale.ROOT.toLanguageTag());
+			l.setLocale(Locale.ROOT);
 			l.setValue("Root value");
 			LocalizedString l_fr = new LocalizedString();
 			l_fr.setLocalizable(ls);
-			l_fr.setLocale(Locale.FRENCH.toLanguageTag());
+			l_fr.setLocale(Locale.FRENCH);
 			l_fr.setValue("French value");
 			ls.setLocalized(Arrays.asList(l, l_fr));
 			id = EX.jpa(new Call<EntityManager, Long>() {
@@ -145,7 +165,19 @@ public class LocalizableEntityTest
 				final LocalizableString ls = db.find(LocalizableString.class, id);
 				Assert.assertEquals(2, ls.getLocalized().size());
 			}
-			
+		});
+		EX.jpa(new Run<EntityManager>() {
+			@Override
+			public void run(EntityManager db) throws Exception
+			{
+				ValueLoader vl = new ValueLoader(Locale.FRENCH);
+				ValueSupplier<String> v = vl.getValue(
+						db.getReference(LocalizableString.class, id));
+				System.out.println("Before load");
+				vl.load(db);
+				System.out.println(v.get());
+				System.out.println("After load");
+			}
 		});
 	}
 }

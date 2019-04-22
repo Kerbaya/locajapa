@@ -16,34 +16,25 @@
  * You should have received a copy of the GNU General Public License
  * along with locajapa.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.kerbaya.locajapa;
+package com.kerbaya.jdbcspy;
 
-import java.util.Collection;
+import java.sql.SQLException;
+import java.sql.Wrapper;
 
-/**
- * Specifies the general contract to which localizable entities must conform.
- * 
- * @author Glenn.Lane@kerbaya.com
- *
- * @param <T>
- */
-public interface Localizable<T>
+public class WrapperInterceptorSupport<W extends Wrapper> 
+		implements WrapperInterceptor<W>
 {
-	/**
-	 * Returns the entity ID.  Must be mapped in JPA (addressable in JPQL as 
-	 * {@code entity.id})
-	 * 
-	 * @return
-	 * Entity ID
-	 */
-	Object getId();
 	
-	/**
-	 * Returns the localized versions.  The relationship must be mapped in JPA 
-	 * (addressable in JPQL as {@code entity.localized})
-	 * 
-	 * @return
-	 * The localized versions
-	 */
-	Collection<? extends Localized<? extends T>> getLocalized();
+	@Override
+	public <T> T unwrap(W subject, Class<T> iface) throws SQLException
+	{
+		return subject.unwrap(iface);
+	}
+
+	@Override
+	public boolean isWrapperFor(W subject, Class<?> iface) throws SQLException
+	{
+		return subject.isWrapperFor(iface);
+	}
+	
 }

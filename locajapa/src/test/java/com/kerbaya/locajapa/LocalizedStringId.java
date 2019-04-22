@@ -28,7 +28,7 @@ public class LocalizedStringId implements Serializable
 	private static final long serialVersionUID = 2951991303475177055L;
 
 	private Long localizableId;
-	private String locale;
+	private String languageTag;
 	
 	@Column(name="localizable_id")
 	public Long getLocalizableId()
@@ -40,19 +40,19 @@ public class LocalizedStringId implements Serializable
 		this.localizableId = localizableId;
 	}
 	
-	public String getLocale()
+	public String getLanguageTag()
 	{
-		return locale;
+		return languageTag;
 	}
-	public void setLocale(String locale)
+	public void setLanguageTag(String languageTag)
 	{
-		this.locale = locale;
+		this.languageTag = languageTag;
 	}
 	
 	@Override
 	public int hashCode()
 	{
-		return Objects.hash(locale, localizableId);
+		return Objects.hash(languageTag, localizableId);
 	}
 	
 	@Override
@@ -67,7 +67,7 @@ public class LocalizedStringId implements Serializable
 			return false;
 		}
 		LocalizedStringId other = (LocalizedStringId) obj;
-		return Objects.equals(locale, other.locale)
+		return Objects.equals(languageTag, other.languageTag)
 				&& Objects.equals(localizableId, other.localizableId);
 	}
 	

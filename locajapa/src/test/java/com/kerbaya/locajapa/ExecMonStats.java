@@ -18,40 +18,17 @@
  */
 package com.kerbaya.locajapa;
 
-import java.util.Collection;
-
-import javax.persistence.CascadeType;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.OneToMany;
-
-@Entity
-public class LocalizableString implements Localizable<String>
+public final class ExecMonStats
 {
-	private Long id;
-	private Collection<LocalizedString> localized;
+	private int execCount;
 	
-	@Override
-	@Id
-	@GeneratedValue(strategy=GenerationType.IDENTITY)
-	public Long getId()
+	public void incrementExecCount()
 	{
-		return id;
-	}
-	public void setId(Long id)
-	{
-		this.id = id;
+		execCount++;
 	}
 	
-	@OneToMany(mappedBy="localizable", cascade=CascadeType.ALL)
-	public Collection<LocalizedString> getLocalized()
+	public int getExecCount()
 	{
-		return localized;
-	}
-	public void setLocalized(Collection<LocalizedString> localized)
-	{
-		this.localized = localized;
+		return execCount;
 	}
 }

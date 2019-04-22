@@ -18,40 +18,27 @@
  */
 package com.kerbaya.locajapa;
 
-import java.util.Collection;
+import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.SQLException;
+import java.util.Properties;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.OneToMany;
+import com.kerbaya.jdbcspy.DriverImpl;
 
-@Entity
-public class LocalizableString implements Localizable<String>
+public class ExecMonDriver extends DriverImpl
 {
-	private Long id;
-	private Collection<LocalizedString> localized;
+	private final ExecMonStats stats;
 	
+	public ExecMonDriver()
+	{
+		super("execmon:");
+		stats = new ExecMonStats();
+	}
+
 	@Override
-	@Id
-	@GeneratedValue(strategy=GenerationType.IDENTITY)
-	public Long getId()
+	protected Connection connect(Driver driver, String url, Properties info)
+			throws SQLException
 	{
-		return id;
-	}
-	public void setId(Long id)
-	{
-		this.id = id;
-	}
-	
-	@OneToMany(mappedBy="localizable", cascade=CascadeType.ALL)
-	public Collection<LocalizedString> getLocalized()
-	{
-		return localized;
-	}
-	public void setLocalized(Collection<LocalizedString> localized)
-	{
-		this.localized = localized;
+		return new ExecMonConnection(stats, super.connect(driver, url, info));
 	}
 }
