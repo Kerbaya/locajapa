@@ -40,9 +40,9 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.kerbaya.locajapa.DBExecutor.Run;
 import com.kerbaya.jdbcspy.DriverImpl;
-import com.kerbaya.locajapa.DBExecutor.Call;
+import com.kerbaya.locajapa.DBExecutor.JdbcRun;
+import com.kerbaya.locajapa.DBExecutor.JpaCall;
 
 public class LocalizableEntityTest
 {
@@ -85,12 +85,12 @@ public class LocalizableEntityTest
 				"jdbc:spy:h2:mem:" + UUID.randomUUID().toString());
 		try
 		{
-			ex.jdbc(new Run<Connection>() {
+			ex.runJdbc(new JdbcRun() {
 
 				@Override
-				public void run(Connection db) throws Exception
+				public void run(Connection con) throws SQLException
 				{
-					try (Statement stmt = db.createStatement())
+					try (Statement stmt = con.createStatement())
 					{
 						stmt.executeUpdate(
 								"CREATE TABLE LocalizableString ("
@@ -159,16 +159,16 @@ public class LocalizableEntityTest
 				localizedList.add(localized);
 			}
 			localizable.setLocalized(localizedList);
-			idList.add(EX.jpa(new Call<EntityManager, Long>(){
+			idList.add(EX.callJpa(new JpaCall<Long>(){
 				@Override
-				public Long run(EntityManager db) throws Exception
+				public Long run(EntityManager em)
 				{
-					db.persist(localizable);
+					em.persist(localizable);
 					Long lsId = localizable.getId();
 					if (lsId == null)
 					{
 						System.out.println("Lame: JPA didn't return IDENTITY value");
-						lsId = (Long) db.createQuery(
+						lsId = (Long) em.createQuery(
 								"SELECT MAX(ls.id) FROM LocalizableString ls")
 								.getSingleResult();
 					}
@@ -181,19 +181,19 @@ public class LocalizableEntityTest
 	
 	private List<Map<Locale, String>> iterateMaps(final List<Long> idList, final boolean batch) throws Exception
 	{
-		return EX.jpa(new Call<EntityManager, List<Map<Locale, String>>>() {
+		return EX.callJpa(new JpaCall<List<Map<Locale, String>>>() {
 			@Override
-			public List<Map<Locale, String>> run(EntityManager db) throws Exception
+			public List<Map<Locale, String>> run(EntityManager em)
 			{
 				List<Map<Locale, String>> result = new ArrayList<>(idList.size());
 				MapLoader ml = new MapLoader();
 				for (Long id: idList)
 				{
-					result.add(ml.getMap(db.getReference(LocalizableString.class, id)));
+					result.add(ml.getMap(em.getReference(LocalizableString.class, id)));
 				}
 				if (batch)
 				{
-					ml.load(db);
+					ml.load(em);
 				}
 				for (Map<Locale, String> m: result)
 				{
@@ -206,19 +206,19 @@ public class LocalizableEntityTest
 	
 	private List<String> iterateValues(final List<Long> idList, final Locale locale, final boolean batch) throws Exception
 	{
-		return EX.jpa(new Call<EntityManager, List<String>>() {
+		return EX.callJpa(new JpaCall<List<String>>() {
 			@Override
-			public List<String> run(EntityManager db) throws Exception
+			public List<String> run(EntityManager em)
 			{
 				List<ValueSupplier<String>> values = new ArrayList<>(idList.size());
 				ValueLoader vl = new ValueLoader(locale);
 				for (Long id: idList)
 				{
-					values.add(vl.getValue(db.getReference(LocalizableString.class, id)));
+					values.add(vl.getValue(em.getReference(LocalizableString.class, id)));
 				}
 				if (batch)
 				{
-					vl.load(db);
+					vl.load(em);
 				}
 				List<String> result = new ArrayList<>(idList.size());
 				for (ValueSupplier<String> vs: values)

@@ -34,14 +34,24 @@ public class DBExecutor implements AutoCloseable
 	private final Connection con;
 	private final EntityManagerFactory emf;
 	
-	public interface Run<T>
+	public interface JpaRun
 	{
-		void run(T db) throws Exception;
+		void run(EntityManager em);
 	}
 	
-	public interface Call<T, V>
+	public interface JpaCall<T>
 	{
-		V run(T db) throws Exception;
+		T run(EntityManager em);
+	}
+	
+	public interface JdbcRun
+	{
+		void run(Connection con) throws SQLException;
+	}
+	
+	public interface JdbcCall<T>
+	{
+		T run(Connection con) throws SQLException;
 	}
 	
 	public DBExecutor(String persistenceUnitName, String jdbcUrl) 
@@ -82,21 +92,21 @@ public class DBExecutor implements AutoCloseable
 		}
 	}
 	
-	public void jpa(final Run<EntityManager> run) throws Exception
+	public void runJpa(final JpaRun run)
 	{
-		jpa(new Call<EntityManager, Void>() {
+		callJpa(new JpaCall<Void>() {
 			@Override
-			public Void run(EntityManager db) throws Exception
+			public Void run(EntityManager em)
 			{
-				run.run(db);
+				run.run(em);
 				return null;
 			}
 		});
 	}
 	
-	public <V> V jpa(Call<EntityManager, V> run) throws Exception
+	public <T> T callJpa(JpaCall<T> run)
 	{
-		final V result;
+		final T result;
 		boolean committed = false;
 		EntityManager em = emf.createEntityManager();
 		try
@@ -124,22 +134,21 @@ public class DBExecutor implements AutoCloseable
 		return result;
 	}
 	
-	public void jdbc(final Run<Connection> run) throws Exception
+	public void runJdbc(final JdbcRun run) throws SQLException
 	{
-		jdbc(new Call<Connection, Void>() {
-
+		callJdbc(new JdbcCall<Void>() {
 			@Override
-			public Void run(Connection db) throws Exception
+			public Void run(Connection con) throws SQLException
 			{
-				run.run(db);
+				run.run(con);
 				return null;
 			}
 		});
 	}
 	
-	public <V> V jdbc(Call<Connection, V> run) throws Exception
+	public <T> T callJdbc(JdbcCall<T> run) throws SQLException
 	{
-		final V result;
+		final T result;
 		boolean committed = false;
 		try
 		{
