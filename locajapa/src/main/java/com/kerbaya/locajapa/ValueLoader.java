@@ -117,6 +117,9 @@ public class ValueLoader
 	 * @param localizable
 	 * The localizable entity for which to return a localized value reference
 	 * 
+	 * @param <V>
+	 * The localized value type
+	 * 
 	 * @return
 	 * a localized value reference
 	 */

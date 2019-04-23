@@ -71,6 +71,9 @@ public class MapLoader
 	 * @param localizable
 	 * The instance to translate
 	 * 
+	 * @param <V>
+	 * The localized value type
+	 * 
 	 * @return
 	 * the translated map for the provided localizable.  returns {@code null} if
 	 * the provided {@code localizable} is {@code null}

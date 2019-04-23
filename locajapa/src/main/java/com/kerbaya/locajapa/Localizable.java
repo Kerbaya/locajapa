@@ -26,6 +26,7 @@ import java.util.Collection;
  * @author Glenn.Lane@kerbaya.com
  *
  * @param <T>
+ * The value type that is localized
  */
 public interface Localizable<T>
 {

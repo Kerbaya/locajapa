@@ -5,7 +5,7 @@
 
 <groupId>com.kerbaya</groupId>
 <artifactId>locajapa</artifactId>
-<version>0.0.1-SNAPSHOT</version>
+<version>1.0.0</version>
 
 <properties>
 	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -29,6 +29,33 @@
 			</plugin>
 		</plugins>
 	</pluginManagement>
+	<plugins>
+		<plugin>
+			<artifactId>maven-source-plugin</artifactId>
+			<version>3.0.1</version>
+			<executions>
+				<execution>
+					<goals>
+						<goal>jar-no-fork</goal>
+					</goals>
+				</execution>
+			</executions>
+		</plugin>
+		<plugin>
+			<artifactId>maven-javadoc-plugin</artifactId>
+			<version>3.1.0</version>
+			<executions>
+				<execution>
+					<goals>
+						<goal>jar</goal>
+					</goals>
+					<configuration>
+						<failOnWarnings>true</failOnWarnings>
+					</configuration>
+				</execution>
+			</executions>
+		</plugin>
+	</plugins>
 </build>
 
 

@@ -20,14 +20,20 @@ package com.kerbaya.locajapa;
 
 public final class ExecMonStats
 {
-	private int execCount;
+	private ThreadLocal<Integer> execCount = new ThreadLocal<Integer>() {
+		@Override
+		protected Integer initialValue()
+		{
+			return 0;
+		}
+	};
 	
 	public int getExecCount()
 	{
-		return execCount;
+		return execCount.get();
 	}
 	public void incrementExecCount()
 	{
-		execCount++;
+		execCount.set(execCount.get() + 1);
 	}
 }

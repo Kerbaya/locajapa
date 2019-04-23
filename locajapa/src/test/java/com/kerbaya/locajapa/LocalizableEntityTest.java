@@ -35,9 +35,9 @@ import java.util.UUID;
 
 import javax.persistence.EntityManager;
 
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.Assert;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.kerbaya.jdbcspy.DriverImpl;
@@ -63,23 +63,33 @@ public class LocalizableEntityTest
 		LOCALES = Collections.unmodifiableList(locales);
 	}
 	
-	private static DBExecutor EX;
-	private static ExecMonStats STATS;
+	private DBExecutor ex;
+	private static final ExecMonStats STATS = new ExecMonStats();
 	
-	@BeforeClass
-	public static void createDb() throws Exception
+	static
 	{
-		if (EX != null)
+		try
+		{
+			DriverManager.registerDriver(new DriverImpl(
+					"jdbc:spy:",
+					null,
+					new StatementExecMon(STATS),
+					new PreparedStatementExecMon(STATS),
+					new CallableStatementExecMon(STATS)));
+		}
+		catch (SQLException e)
+		{
+			throw new IllegalStateException(e);
+		}
+	}
+	
+	@Before
+	public void createDb() throws Exception
+	{
+		if (ex != null)
 		{
 			throw new IllegalStateException();
 		}
-		STATS = new ExecMonStats();
-		DriverManager.registerDriver(new DriverImpl(
-				"jdbc:spy:",
-				null,
-				new StatementExecMon(STATS),
-				new PreparedStatementExecMon(STATS),
-				new CallableStatementExecMon(STATS)));
 		DBExecutor ex = new DBExecutor(
 				"locajapa", 
 				"jdbc:spy:h2:mem:" + UUID.randomUUID().toString());
@@ -107,29 +117,29 @@ public class LocalizableEntityTest
 					}
 				}
 			});
-			EX = ex;
+			this.ex = ex;
 		}
 		finally
 		{
-			if (EX == null)
+			if (this.ex == null)
 			{
 				ex.close();
 			}
 		}
 	}
 	
-	@AfterClass
-	public static void closeDb() throws SQLException
+	@After
+	public void closeDb() throws SQLException
 	{
-		if (EX != null)
+		if (ex != null)
 		{
 			try
 			{
-				EX.close();
+				ex.close();
 			}
 			finally
 			{
-				EX = null;
+				ex = null;
 			}
 		}
 	}
@@ -159,7 +169,7 @@ public class LocalizableEntityTest
 				localizedList.add(localized);
 			}
 			localizable.setLocalized(localizedList);
-			idList.add(EX.callJpa(new JpaCall<Long>(){
+			idList.add(ex.callJpa(new JpaCall<Long>(){
 				@Override
 				public Long run(EntityManager em)
 				{
@@ -181,7 +191,7 @@ public class LocalizableEntityTest
 	
 	private List<Map<Locale, String>> iterateMaps(final List<Long> idList, final boolean batch) throws Exception
 	{
-		return EX.callJpa(new JpaCall<List<Map<Locale, String>>>() {
+		return ex.callJpa(new JpaCall<List<Map<Locale, String>>>() {
 			@Override
 			public List<Map<Locale, String>> run(EntityManager em)
 			{
@@ -206,7 +216,7 @@ public class LocalizableEntityTest
 	
 	private List<String> iterateValues(final List<Long> idList, final Locale locale, final boolean batch) throws Exception
 	{
-		return EX.callJpa(new JpaCall<List<String>>() {
+		return ex.callJpa(new JpaCall<List<String>>() {
 			@Override
 			public List<String> run(EntityManager em)
 			{
@@ -230,15 +240,15 @@ public class LocalizableEntityTest
 		});
 	}
 	
-	private static int LAST_EXEC_COUNT = 0;
+	private int lastExecCount = 0;
 	
-	private static void printExecCount(String label)
+	private void printExecCount(String label)
 	{
 		System.out.println(String.format(
 				"%s: %d executions", 
 				label, 
-				STATS.getExecCount() - LAST_EXEC_COUNT));
-		LAST_EXEC_COUNT = STATS.getExecCount();
+				STATS.getExecCount() - lastExecCount));
+		lastExecCount = STATS.getExecCount();
 	}
 	
 	@Test
