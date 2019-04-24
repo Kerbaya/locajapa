@@ -40,7 +40,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.kerbaya.jdbcspy.DriverImpl;
 import com.kerbaya.locajapa.DBExecutor.JdbcRun;
 import com.kerbaya.locajapa.DBExecutor.JpaCall;
 
@@ -70,12 +69,11 @@ public class LocalizableEntityTest
 	{
 		try
 		{
-			DriverManager.registerDriver(new DriverImpl(
-					"jdbc:spy:",
-					null,
-					new StatementExecMon(STATS),
-					new PreparedStatementExecMon(STATS),
-					new CallableStatementExecMon(STATS)));
+			DriverManager.registerDriver(new ExecuteTriggerDriver(
+					"jdbc:spy:", 
+					() -> {
+						STATS.incrementExecCount();
+					}));
 		}
 		catch (SQLException e)
 		{

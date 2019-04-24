@@ -17,15 +17,39 @@
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
-					<source>1.7</source>
-					<target>1.7</target>
 					<showWarnings>true</showWarnings>
-					<compilerArgs>
-						<compilerArg>-Xlint:all</compilerArg>
-						<compilerArg>-Werror</compilerArg>
-						<compilerArg>-Xbootclasspath:${jre7.home}/lib/rt.jar</compilerArg>
-					</compilerArgs>
 				</configuration>
+				<executions>
+					<execution>
+						<id>default-compile</id>
+						<goals>
+							<goal>compile</goal>
+						</goals>
+						<configuration>
+							<source>1.7</source>
+							<target>1.7</target>
+							<compilerArgs>
+								<compilerArg>-Xbootclasspath:${jre7.home}/lib/rt.jar</compilerArg>
+								<compilerArg>-Xlint:all</compilerArg>
+								<compilerArg>-Werror</compilerArg>
+							</compilerArgs>
+						</configuration>
+					</execution>
+					<execution>
+						<id>default-testCompile</id>
+						<goals>
+							<goal>testCompile</goal>
+						</goals>
+						<configuration>
+							<source>1.8</source>
+							<target>1.8</target>
+							<compilerArgs>
+								<compilerArg>-Xlint:all</compilerArg>
+								<compilerArg>-Werror</compilerArg>
+							</compilerArgs>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</pluginManagement>
@@ -77,6 +101,18 @@
 	    <artifactId>hibernate-entitymanager</artifactId>
 	    <version>3.2.1.ga</version>
 	    <scope>test</scope>
+	    <exclusions>
+	    	<exclusion>
+	    		<groupId>javassist</groupId>
+	    		<artifactId>javassist</artifactId>
+	    	</exclusion>
+	    </exclusions>
+	</dependency>
+	<dependency>
+   		<groupId>org.javassist</groupId>
+   		<artifactId>javassist</artifactId>
+   		<version>3.25.0-GA</version>
+   		<scope>test</scope>
 	</dependency>
 	<dependency>
 		<groupId>javax.transaction</groupId>
