@@ -22,8 +22,6 @@ import java.util.Collection;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
 
@@ -35,7 +33,6 @@ public class LocalizableString implements Localizable<String>
 	
 	@Override
 	@Id
-	@GeneratedValue(strategy=GenerationType.IDENTITY)
 	public Long getId()
 	{
 		return id;

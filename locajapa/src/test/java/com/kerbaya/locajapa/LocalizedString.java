@@ -22,37 +22,28 @@ import javax.persistence.Basic;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.Id;
-import javax.persistence.IdClass;
-import javax.persistence.JoinColumn;
 import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 
 @SuppressWarnings("serial")
 @Entity
-@IdClass(LocalizedStringId.class)
 public class LocalizedString extends MappedLocalized<String>
 {
+	private Long id;
 	private LocalizableString localizable;
 	private String value;
 	
 	@Id
-	public Long getLocalizableId()
+	public Long getId()
 	{
-		return localizable == null ? null : localizable.getId();
+		return id;
 	}
-	public void setLocalizableId(Long localizableId)
+	public void setId(Long id)
 	{
-	}
-	
-	@Id
-	@Override
-	public String getLanguageTag()
-	{
-		return super.getLanguageTag();
+		this.id = id;
 	}
 	
 	@ManyToOne(optional=false, fetch=FetchType.LAZY)
-	@JoinColumn(insertable=false, updatable=false)
 	public LocalizableString getLocalizable()
 	{
 		return localizable;

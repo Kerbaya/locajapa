@@ -27,7 +27,6 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
-import java.util.Arrays;
 import java.util.Properties;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -56,7 +55,7 @@ public class ExecuteTriggerDriver implements Driver
 		this.urlPrefix = urlPrefix;
 		
 		OverrideHandler<Statement> execOverride = (stmt, method, args) -> {
-			System.out.println(String.format("%s.%s(%s)", stmt.getClass(), method.getName(), Arrays.toString(args)));
+//			System.out.println(String.format("%s.%s(%s)", stmt.getClass(), method.getName(), Arrays.toString(args)));
 			trigger.run();
 			return method.invoke(stmt, args);
 		};

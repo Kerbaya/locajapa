@@ -38,25 +38,32 @@ import javax.persistence.Query;
  */
 public class MapLoader
 {
+	/**
+	 * The default maximum number of instances to load per query
+	 */
+	public static final int DEFAULT_BATCH_SIZE = 1000;
+
 	private static final String JPQL_PATTERN = Utils.loadResource(
 			MapLoader.class, "MapLoader.jpql");
 	private static final String ENTITY_NAME_TOKEN = "${entityName}";
 	private static final String ID_SET_PARAM = "idSet";
-	private static final int MAX_BATCH_SIZE = 1000;
 	
 	private final Map<String, Map<Object, MapImpl<?>>> entityNameMap = 
 			new HashMap<>();
 	
 	private final EntityNameResolver entityNameResolver;
+	private final int batchSize;
 	
 	public MapLoader()
 	{
-		this(EntityNameResolver.DEFAULT);
+		this(null, 0);
 	}
 	
-	public MapLoader(EntityNameResolver enr)
+	public MapLoader(EntityNameResolver enr, int batchSize)
 	{
-		this.entityNameResolver = enr;
+		this.entityNameResolver = enr == null ? 
+				EntityNameResolver.DEFAULT : enr;
+		this.batchSize = batchSize <= 0 ? DEFAULT_BATCH_SIZE : batchSize;
 	}
 
 	/**
@@ -85,7 +92,8 @@ public class MapLoader
 			return null;
 		}
 		
-		String entityName = entityNameResolver.resolveEntityName(localizable.getClass());
+		String entityName = entityNameResolver.resolveEntityName(
+				localizable.getClass());
 		if (entityName == null)
 		{
 			throw new IllegalArgumentException(
@@ -141,7 +149,7 @@ public class MapLoader
 					continue;
 				}
 				batch.put(next.getKey(), mapView);
-				if (batch.size() == MAX_BATCH_SIZE)
+				if (batch.size() == batchSize)
 				{
 					flushBatch(q, batch);
 				}
@@ -160,17 +168,14 @@ public class MapLoader
 		List<? extends Localizable<?>> queryResults = 
 				q.setParameter(ID_SET_PARAM, batch.keySet())
 						.getResultList();
-		Object lastId = null;
 		for (Localizable<?> queryResult: queryResults)
 		{
-			Object queryResultId = queryResult.getId();
-			if (lastId != null && lastId.equals(queryResultId))
+			MapImpl<?> entry = batch.remove(queryResult.getId());
+			if (entry == null)
 			{
 				continue;
 			}
-			batch.remove(queryResultId).setLocalized(
-					queryResult.getLocalized());
-			lastId = queryResultId;
+			entry.setLocalized(queryResult.getLocalized());
 		}
 		
 		for (MapImpl<?> batchEntry: batch.values())

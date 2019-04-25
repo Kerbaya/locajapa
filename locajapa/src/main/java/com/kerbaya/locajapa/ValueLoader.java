@@ -40,19 +40,24 @@ import javax.persistence.Query;
  */
 public class ValueLoader
 {
+	/**
+	 * The default maximum number of instances to load per query
+	 */
+	public static final int DEFAULT_BATCH_SIZE = 1000;
+
 	private static final String JPQL_PATTERN = Utils.loadResource(
 			MapLoader.class, "ValueLoader.jpql");
 	private static final String ENTITY_NAME_TOKEN = "${entityName}";
 	private static final String ID_SET_PARAM = "idSet";
 	private static final String LANGUAGE_TAG_SET_PARAM = "languageTagSet";
-	private static final int MAX_BATCH_SIZE = 1000;
 	
 	private final Map<String, Map<Object, ValueSupplierImpl<?>>> entityNameMap = 
 			new HashMap<>();
 
-	private final EntityNameResolver entityNameResolver;
 	private final Set<String> candidateLanguageTags;
+	private final EntityNameResolver entityNameResolver;
 	private final boolean nullAsSupplier;
+	private final int batchSize;
 
 	/**
 	 * Creates an instance where values will be returned for a particular 
@@ -66,7 +71,7 @@ public class ValueLoader
 	 */
 	public ValueLoader(Locale locale)
 	{
-		this(locale, false);
+		this(locale, null, false, 0);
 	}
 	
 	/**
@@ -76,6 +81,10 @@ public class ValueLoader
 	 * @param locale
 	 * The local for which values will be localized
 	 * 
+	 * @param entityNameResolver
+	 * The resolver that will translate classes to entity names.  Providing 
+	 * {@code null} will use {@link EntityNameResolver#DEFAULT}
+	 * 
 	 * @param nullAsSupplier
 	 * Controls behavior of {@link #getValue(Localizable)} when the provided
 	 * {@code localizable} is {@code null}.  If {@code nullAsSupplier} is {@code false},
@@ -83,18 +92,18 @@ public class ValueLoader
 	 * {@code nullAsSupplier} is {@code true}, {@link #getValue(Localizable)}
 	 * returns an instance of {@link ValueSupplier}, whose 
 	 * {@link ValueSupplier#get()} method returns {@code null}.
+	 * 
+	 * @param batchSize
+	 * The maximum number of values returned per query.  Providing 0 or a 
+	 * negative number will use {@link #DEFAULT_BATCH_SIZE}
+	 * 
 	 */
-	public ValueLoader(Locale locale, boolean nullAsSupplier)
-	{
-		this(EntityNameResolver.DEFAULT, locale, nullAsSupplier);
-	}
-	
 	public ValueLoader(
-			EntityNameResolver entityNameResolver, 
 			Locale locale, 
-			boolean nullAsSupplier)
+			EntityNameResolver entityNameResolver, 
+			boolean nullAsSupplier,
+			int batchSize)
 	{
-		this.entityNameResolver = entityNameResolver;
 		List<Locale> candidateLocales = Utils.getCandidateLocales(
 				new Locale.Builder().setLocale(locale).build());
 		Set<String> candidateLanguageTags = new HashSet<>(
@@ -105,7 +114,10 @@ public class ValueLoader
 		}
 		this.candidateLanguageTags = 
 				Collections.unmodifiableSet(candidateLanguageTags);
+		this.entityNameResolver = entityNameResolver == null ? 
+				EntityNameResolver.DEFAULT : entityNameResolver;
 		this.nullAsSupplier = nullAsSupplier;
+		this.batchSize = batchSize <= 0 ? DEFAULT_BATCH_SIZE : batchSize;
 	}
 	
 	/**
@@ -130,7 +142,8 @@ public class ValueLoader
 			return nullAsSupplier ? ValueSupplierImpl.<V>ofNull() : null;
 		}
 		
-		String entityName = entityNameResolver.resolveEntityName(localizable.getClass());
+		String entityName = entityNameResolver.resolveEntityName(
+				localizable.getClass());
 		if (entityName == null)
 		{
 			throw new IllegalArgumentException(
@@ -192,7 +205,7 @@ public class ValueLoader
 					continue;
 				}
 				batch.put(next.getKey(), supplier);
-				if (batch.size() == MAX_BATCH_SIZE)
+				if (batch.size() == batchSize)
 				{
 					flushBatch(q, batch);
 				}
@@ -214,8 +227,12 @@ public class ValueLoader
 				.getResultList();
 		for (Object[] queryResult: queryResults)
 		{
-			batch.remove(queryResult[0]).set(
-					((Localized<?>) queryResult[1]).getValue());
+			ValueSupplierImpl<?> vs = batch.remove(queryResult[0]);
+			if (vs == null)
+			{
+				continue;
+			}
+			vs.set(((Localized<?>) queryResult[1]).getValue());
 		}
 		
 		for (ValueSupplierImpl<?> batchEntry: batch.values())

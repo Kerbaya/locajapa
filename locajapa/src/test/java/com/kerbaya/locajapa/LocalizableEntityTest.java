@@ -18,7 +18,7 @@
  */
 package com.kerbaya.locajapa;
 
-import java.sql.Connection;
+import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -26,26 +26,21 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
-import javax.persistence.EntityManager;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.kerbaya.locajapa.DBExecutor.JdbcRun;
-import com.kerbaya.locajapa.DBExecutor.JpaCall;
-
 public class LocalizableEntityTest
 {
-	private static final List<Locale> LOCALES;
+	private static final List<Locale> LOCALE_LIST;
 	
 	static
 	{
@@ -59,69 +54,80 @@ public class LocalizableEntityTest
 				locales.add(l);
 			}
 		}
-		LOCALES = Collections.unmodifiableList(locales);
+		LOCALE_LIST = Collections.unmodifiableList(locales);
 	}
 	
+	private AtomicInteger exCount;
+	private Driver driver;
 	private DBExecutor ex;
-	private static final ExecMonStats STATS = new ExecMonStats();
-	
-	static
-	{
-		try
-		{
-			DriverManager.registerDriver(new ExecuteTriggerDriver(
-					"jdbc:spy:", 
-					() -> {
-						STATS.incrementExecCount();
-					}));
-		}
-		catch (SQLException e)
-		{
-			throw new IllegalStateException(e);
-		}
-	}
 	
 	@Before
-	public void createDb() throws Exception
+	public void createDb() throws SQLException
 	{
 		if (ex != null)
 		{
 			throw new IllegalStateException();
 		}
-		DBExecutor ex = new DBExecutor(
-				"locajapa", 
-				"jdbc:spy:h2:mem:" + UUID.randomUUID().toString());
+		String uuid = UUID.randomUUID().toString();
+		String urlPrefix = "jdbc:" + uuid + ":";
+		boolean ok = false;
+		exCount = new AtomicInteger();
 		try
 		{
-			ex.runJdbc(new JdbcRun() {
-
-				@Override
-				public void run(Connection con) throws SQLException
+			driver = new ExecuteTriggerDriver(urlPrefix, () -> {
+				exCount.incrementAndGet();
+			});
+			DriverManager.registerDriver(driver);
+			try
+			{
+				ex = new DBExecutor("locajapa", urlPrefix + "h2:mem:" + uuid);
+				try
 				{
-					try (Statement stmt = con.createStatement())
+					ex.runJdbc((con) -> {
+						try (Statement stmt = con.createStatement())
+						{
+							stmt.executeUpdate(
+									"CREATE TABLE LocalizableString ("
+									+ "id BIGINT NOT NULL, "
+									+ "PRIMARY KEY (id))");
+							stmt.executeUpdate(
+									"CREATE TABLE LocalizedString ("
+									+ "id BIGINT NOT NULL, "
+									+ "localizable_id BIGINT NOT NULL, "
+									+ "languageTag VARCHAR(35) NOT NULL, "
+									+ "languageLevel INT NOT NULL, "
+									+ "value CLOB NOT NULL, "
+									+ "PRIMARY KEY (id), "
+									+ "UNIQUE (localizable_id, languageTag), "
+									+ "FOREIGN KEY (localizable_id) "
+											+ "REFERENCES LocalizableString (id))");
+						}
+					});
+					ok = true;
+				}
+				finally
+				{
+					if (!ok)
 					{
-						stmt.executeUpdate(
-								"CREATE TABLE LocalizableString ("
-								+ "id BIGINT NOT NULL GENERATED ALWAYS AS IDENTITY, "
-								+ "PRIMARY KEY (id))");
-						stmt.executeUpdate(
-								"CREATE TABLE LocalizedString ("
-								+ "localizable_id BIGINT NOT NULL, "
-								+ "languageTag VARCHAR(35) NOT NULL, "
-								+ "languageLevel INT NOT NULL, "
-								+ "value CLOB NOT NULL, "
-								+ "PRIMARY KEY (localizable_id, languageTag), "
-								+ "FOREIGN KEY (localizable_id) REFERENCES LocalizableString (id))");
+						ex.close();
+						ex = null;
 					}
 				}
-			});
-			this.ex = ex;
+			}
+			finally
+			{
+				if (!ok)
+				{
+					DriverManager.deregisterDriver(driver);
+					driver = null;
+				}
+			}
 		}
 		finally
 		{
-			if (this.ex == null)
+			if (!ok)
 			{
-				ex.close();
+				exCount = null;
 			}
 		}
 	}
@@ -129,149 +135,174 @@ public class LocalizableEntityTest
 	@After
 	public void closeDb() throws SQLException
 	{
-		if (ex != null)
+		if (ex == null)
 		{
-			try
+			return;
+		}
+		try
+		{
+			ex.close();
+		}
+		finally
+		{
+			ex = null;
+			try 
 			{
-				ex.close();
+				DriverManager.deregisterDriver(driver);
 			}
 			finally
 			{
-				ex = null;
+				driver = null;
+				exCount = null;
 			}
 		}
 	}
 	
-	private List<Long> createLocalizable(
-			int localizableCount, int localizedCount) throws Exception
+	private void createLocalizable(int localizableCount, int localizedCount)
 	{
-		List<Long> idList = new ArrayList<>(localizableCount);
-		if (localizedCount > LOCALES.size())
+		if (localizedCount > LOCALE_LIST.size())
 		{
 			throw new IllegalArgumentException("Not enough available locales");
 		}
-		List<Locale> localeList = new ArrayList<>(LOCALES);
-		for (int i = 0; i < localizableCount; i++)
-		{
-			final LocalizableString localizable = new LocalizableString();
-			Collection<LocalizedString> localizedList = 
-					new ArrayList<>(localizedCount);
-			Collections.shuffle(localeList);
-			Iterator<Locale> localeIter = localeList.iterator();
-			for (int j = 0; j < localizedCount; j++)
+		List<Locale> localeList = new ArrayList<>(LOCALE_LIST);
+		ex.runJpa((em) -> {
+			for (long id = 0; id < localizableCount; id++)
 			{
-				LocalizedString localized = new LocalizedString();
-				localized.setLocalizable(localizable);
-				localized.setLocale(localeIter.next());
-				localized.setValue(UUID.randomUUID().toString());
-				localizedList.add(localized);
-			}
-			localizable.setLocalized(localizedList);
-			idList.add(ex.callJpa(new JpaCall<Long>(){
-				@Override
-				public Long run(EntityManager em)
+				final LocalizableString localizable = new LocalizableString();
+				localizable.setId(id);
+				Collection<LocalizedString> localizedList = 
+						new ArrayList<>(localizedCount);
+				Collections.shuffle(localeList);
+				for (int j = 0; j < localizedCount; j++)
 				{
-					em.persist(localizable);
-					Long lsId = localizable.getId();
-					if (lsId == null)
-					{
-						System.out.println("Lame: JPA didn't return IDENTITY value");
-						lsId = (Long) em.createQuery(
-								"SELECT MAX(ls.id) FROM LocalizableString ls")
-								.getSingleResult();
-					}
-					return lsId;
+					LocalizedString localized = new LocalizedString();
+					localized.setId(id * localizedCount + j);
+					localized.setLocalizable(localizable);
+					localized.setLocale(localeList.get(j));
+					localized.setValue(UUID.randomUUID().toString());
+					localizedList.add(localized);
 				}
-			}));
-		}
-		return idList;
-	}
-	
-	private List<Map<Locale, String>> iterateMaps(final List<Long> idList, final boolean batch) throws Exception
-	{
-		return ex.callJpa(new JpaCall<List<Map<Locale, String>>>() {
-			@Override
-			public List<Map<Locale, String>> run(EntityManager em)
-			{
-				List<Map<Locale, String>> result = new ArrayList<>(idList.size());
-				MapLoader ml = new MapLoader();
-				for (Long id: idList)
-				{
-					result.add(ml.getMap(em.getReference(LocalizableString.class, id)));
-				}
-				if (batch)
-				{
-					ml.load(em);
-				}
-				for (Map<Locale, String> m: result)
-				{
-					m.size();
-				}
-				return result;
+				localizable.setLocalized(localizedList);
+				em.persist(localizable);
 			}
 		});
 	}
 	
-	private List<String> iterateValues(final List<Long> idList, final Locale locale, final boolean batch) throws Exception
+	private List<Map<Locale, String>> iterateMaps(
+			int localizableCount, boolean batch)
 	{
-		return ex.callJpa(new JpaCall<List<String>>() {
-			@Override
-			public List<String> run(EntityManager em)
+		List<Map<Locale, String>> result = new ArrayList<>(localizableCount);
+		ex.runJpa((em) -> {
+			MapLoader ml = new MapLoader();
+			for (long id = 0; id < localizableCount; id++)
 			{
-				List<ValueSupplier<String>> values = new ArrayList<>(idList.size());
-				ValueLoader vl = new ValueLoader(locale);
-				for (Long id: idList)
-				{
-					values.add(vl.getValue(em.getReference(LocalizableString.class, id)));
-				}
-				if (batch)
-				{
-					vl.load(em);
-				}
-				List<String> result = new ArrayList<>(idList.size());
-				for (ValueSupplier<String> vs: values)
-				{
-					result.add(vs.get());
-				}
-				return result;
+				LocalizableString ls = em.getReference(
+						LocalizableString.class, id);
+				result.add(ml.getMap(ls));
+			}
+			if (batch)
+			{
+				ml.load(em);
+			}
+			for (Map<Locale, String> m: result)
+			{
+				m.size();
 			}
 		});
+		return result;
 	}
 	
-	private int lastExecCount = 0;
-	
-	private void printExecCount(String label)
+	private List<String> iterateValues(
+			int localizableCount, Locale locale, boolean batch)
 	{
-		System.out.println(String.format(
-				"%s: %d executions", 
-				label, 
-				STATS.getExecCount() - lastExecCount));
-		lastExecCount = STATS.getExecCount();
+		List<String> result = new ArrayList<>(localizableCount);
+		return ex.callJpa((em) -> {
+			List<ValueSupplier<String>> values = new ArrayList<>(
+					localizableCount);
+			ValueLoader vl = new ValueLoader(locale);
+			for (long id = 0; id < localizableCount; id++)
+			{
+				LocalizableString ls = em.getReference(
+						LocalizableString.class, id);
+				values.add(vl.getValue(ls));
+			}
+			if (batch)
+			{
+				vl.load(em);
+			}
+			for (ValueSupplier<String> vs: values)
+			{
+				result.add(vs.get());
+			}
+			return result;
+		});
 	}
 	
 	@Test
-	public void test() throws Exception
+	public void valueLoader()
 	{
-		final int localizableCount = 10;
-		printExecCount("Tables created");
-		List<Long> idList = createLocalizable(localizableCount, 5);
-		printExecCount("Entities created");
-		List<String> unbatchedValues = iterateValues(idList, Locale.ENGLISH, false);
-		printExecCount("Iterated unbatched values");
+		final int localizableCount = 100;
+		
+		createLocalizable(localizableCount, 5);
+
+		exCount.set(0);
+		List<String> unbatchedValues = iterateValues(
+				localizableCount, Locale.ENGLISH, false);
+		/*
+		 * We expected 2 queries per localizable, because the localized 
+		 * collection is lazy (query #1 for the localizable itself, query #2 for 
+		 * its collection)
+		 */
+		Assert.assertEquals(localizableCount * 2, exCount.get());
+
+		
 		Assert.assertEquals(localizableCount, unbatchedValues.size());
-		int execCount = STATS.getExecCount();
-		List<String> batchedValues = iterateValues(idList, Locale.ENGLISH, true);
-		printExecCount("Iterated batched values");
-		Assert.assertEquals(execCount + 1, STATS.getExecCount());
+		
+		exCount.set(0);
+		List<String> batchedValues = iterateValues(
+				localizableCount, Locale.ENGLISH, true);
+		/*
+		 * we expect:
+		 * localizableCount / (ValueLoader.DEFAULT_BATCH_SIZE + 1) + 1
+		 * 
+		 * As long as we're under the batch size, expect 1 query
+		 */
+		Assert.assertEquals(1, exCount.get());
+
+		
 		Assert.assertEquals(unbatchedValues, batchedValues);
 		
-		List<Map<Locale, String>> unbatchedMaps = iterateMaps(idList, false);
-		printExecCount("Iterated unbatched maps");
+	}
+	
+	@Test
+	public void mapLoader()
+	{
+		final int localizableCount = 100;
 		
-		execCount = STATS.getExecCount();
-		List<Map<Locale, String>> batchedMaps = iterateMaps(idList, true);
-		printExecCount("Iterated batched maps");
-		Assert.assertEquals(execCount + 1, STATS.getExecCount());
+		createLocalizable(localizableCount, 5);
+		exCount.set(0);
+		List<Map<Locale, String>> unbatchedMaps = iterateMaps(
+				localizableCount, false);
+		/*
+		 * We expected 2 queries per localizable, because the localized 
+		 * collection is lazy (query #1 for the localizable itself, query #2 for 
+		 * its collection)
+		 */
+		Assert.assertEquals(localizableCount * 2, exCount.get());
+
+		
+		exCount.set(0);
+		List<Map<Locale, String>> batchedMaps = iterateMaps(
+				localizableCount, true);
+		/*
+		 * we expect:
+		 * localizableCount / (ValueLoader.DEFAULT_BATCH_SIZE + 1) + 1
+		 * 
+		 * As long as we're under the batch size, expect 1 query
+		 */
+		Assert.assertEquals(1, exCount.get());
+
+		
 		Assert.assertEquals(unbatchedMaps, batchedMaps);
 	}
 }

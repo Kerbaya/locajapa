@@ -34,21 +34,25 @@ public class DBExecutor implements AutoCloseable
 	private final Connection con;
 	private final EntityManagerFactory emf;
 	
+	@FunctionalInterface
 	public interface JpaRun
 	{
 		void run(EntityManager em);
 	}
 	
+	@FunctionalInterface
 	public interface JpaCall<T>
 	{
 		T run(EntityManager em);
 	}
 	
+	@FunctionalInterface
 	public interface JdbcRun
 	{
 		void run(Connection con) throws SQLException;
 	}
 	
+	@FunctionalInterface
 	public interface JdbcCall<T>
 	{
 		T run(Connection con) throws SQLException;
