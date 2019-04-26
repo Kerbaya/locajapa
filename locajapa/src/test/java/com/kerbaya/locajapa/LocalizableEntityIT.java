@@ -38,7 +38,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class LocalizableEntityTest
+public class LocalizableEntityIT
 {
 	private static final List<Locale> LOCALE_LIST;
 	

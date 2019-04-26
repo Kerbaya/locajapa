@@ -5,10 +5,6 @@
 
 <persistence-unit name="locajapa" transaction-type="RESOURCE_LOCAL">
 
-<!--  
-<provider>org.apache.openjpa.persistence.PersistenceProviderImpl</provider>
--->
-
 <class>com.kerbaya.locajapa.LocalizableString</class>
 <class>com.kerbaya.locajapa.LocalizedString</class>
 

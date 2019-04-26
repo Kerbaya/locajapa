@@ -62,9 +62,9 @@ public class ValueLoader
 	/**
 	 * Creates an instance where values will be returned for a particular 
 	 * locale.  Shorthand for:
-	 * <pre>new ValueLoader(locale, false)</pre>
+	 * <pre>new ValueLoader(locale, null, false, 0)</pre>
 	 * 
-	 * @see #ValueLoader(Locale, boolean)
+	 * @see #ValueLoader(Locale, EntityNameResolver, boolean, int)
 	 * 
 	 * @param locale
 	 * The local for which values will be localized
