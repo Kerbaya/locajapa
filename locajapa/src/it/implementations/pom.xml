@@ -4,7 +4,7 @@
 <modelVersion>4.0.0</modelVersion>
 
 <groupId>com.kerbaya</groupId>
-<artifactId>locajapa-it-implementations</artifactId>
+<artifactId>locajapa-it-parent</artifactId>
 <version>1.0.0</version>
 <packaging>pom</packaging>
 
@@ -13,26 +13,22 @@
 </properties>
 
 <build>
-	<pluginManagement>
-		<plugins>
-			<plugin>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<version>3.0.0-M3</version>
-				<configuration>
-					<testClassesDirectory>${tests.dir}</testClassesDirectory>
-					<test>com/kerbaya/locajapa/LocalizableEntityIT.class</test>
-					<trimStackTrace>false</trimStackTrace>
-				</configuration>
-			</plugin>
-		</plugins>
-	</pluginManagement>
 	<plugins>
 		<plugin>
-			<artifactId>maven-surefire-plugin</artifactId>
-			<inherited>false</inherited>
-			<configuration>
-				<skip>true</skip>
-			</configuration>
+			<artifactId>maven-failsafe-plugin</artifactId>
+			<version>3.0.0-M3</version>
+			<executions>
+				<execution>
+					<goals>
+						<goal>integration-test</goal>
+						<goal>verify</goal>
+					</goals>
+					<configuration>
+						<dependenciesToScan>test:test</dependenciesToScan>
+						<trimStackTrace>false</trimStackTrace>
+					</configuration>
+				</execution>
+			</executions>
 		</plugin>
 	</plugins>
 </build>
@@ -44,6 +40,13 @@
 		<version>1.0.0</version>
 		<scope>system</scope>
 		<systemPath>${subject.jar}</systemPath>
+	</dependency>
+	<dependency>
+		<groupId>test</groupId>
+		<artifactId>test</artifactId>
+		<version>1.0.0</version>
+		<scope>system</scope>
+		<systemPath>${test.jar}</systemPath>
 	</dependency>
 	<dependency>
 		<groupId>junit</groupId>

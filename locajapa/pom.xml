@@ -18,40 +18,26 @@
 			<version>3.8.0</version>
 			<configuration>
 				<showWarnings>true</showWarnings>
+				<source>1.7</source>
+				<target>1.7</target>
+				<compilerArgs>
+					<compilerArg>-Xbootclasspath:${jdk7.home}/jre/lib/rt.jar</compilerArg>
+					<compilerArg>-Xlint:all</compilerArg>
+					<compilerArg>-Werror</compilerArg>
+				</compilerArgs>
+				<compilerVersion>1.7</compilerVersion>
+				<fork>true</fork>
+				<executable>${jdk7.home}/bin/javac</executable>
 			</configuration>
+		</plugin>
+		<plugin>
+			<artifactId>maven-jar-plugin</artifactId>
+			<version>3.1.1</version>
 			<executions>
 				<execution>
-					<id>default-compile</id>
 					<goals>
-						<goal>compile</goal>
+						<goal>test-jar</goal>
 					</goals>
-					<configuration>
-						<source>1.7</source>
-						<target>1.7</target>
-						<compilerArgs>
-							<compilerArg>-Xbootclasspath:${jdk7.home}/jre/lib/rt.jar</compilerArg>
-							<compilerArg>-Xlint:all</compilerArg>
-							<compilerArg>-Werror</compilerArg>
-						</compilerArgs>
-						<compilerVersion>1.7</compilerVersion>
-						<fork>true</fork>
-						<executable>${jdk7.home}/bin/javac</executable>
-					</configuration>
-				</execution>
-				<execution>
-					<id>default-testCompile</id>
-					<goals>
-						<goal>testCompile</goal>
-					</goals>
-					<configuration>
-						<source>1.8</source>
-						<target>1.8</target>
-						<compilerArgs>
-							<compilerArg>-Xbootclasspath:${jdk8.home}/jre/lib/rt.jar</compilerArg>
-							<compilerArg>-Xlint:all</compilerArg>
-							<compilerArg>-Werror</compilerArg>
-						</compilerArgs>
-					</configuration>
 				</execution>
 			</executions>
 		</plugin>
@@ -95,16 +81,17 @@
 					</goals>
 					<configuration>
 						<goals>
-							<goal>surefire:test</goal>
+							<goal>verify</goal>
 						</goals>
 						<cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
 						<failIfNoProjects>true</failIfNoProjects>
 						<properties>
 							<subject.jar>${project.build.directory}/${project.build.finalName}.jar</subject.jar>
-							<tests.dir>${project.build.testOutputDirectory}</tests.dir>
+							<test.jar>${project.build.directory}/${project.build.finalName}-tests.jar</test.jar>
 						</properties>
-						<invokerTest>implementations/*/pom.xml</invokerTest>
-						<parallelThreads>16</parallelThreads>
+						<javaHome>${jdk8.home}</javaHome>
+						<parallelThreads>4</parallelThreads>
+						<invokerTest>implementations/datanucleus-4.0/pom.xml</invokerTest>
 					</configuration>
 				</execution>
 			</executions>
@@ -116,13 +103,19 @@
 	<dependency>
 		<groupId>javax.persistence</groupId>
 		<artifactId>persistence-api</artifactId>
-		<version>1.0</version>
+		<version>1.0.2</version>
 		<scope>provided</scope>
 	</dependency>
 	<dependency>
 		<groupId>junit</groupId>
 		<artifactId>junit</artifactId>
 		<version>4.12</version>
+		<scope>test</scope>
+	</dependency>
+	<dependency>
+		<groupId>com.h2database</groupId>
+		<artifactId>h2</artifactId>
+		<version>1.4.199</version>
 		<scope>test</scope>
 	</dependency>
 </dependencies>

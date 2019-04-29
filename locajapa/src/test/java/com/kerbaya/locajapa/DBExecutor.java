@@ -21,8 +21,6 @@ package com.kerbaya.locajapa;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -34,25 +32,21 @@ public class DBExecutor implements AutoCloseable
 	private final Connection con;
 	private final EntityManagerFactory emf;
 	
-	@FunctionalInterface
 	public interface JpaRun
 	{
 		void run(EntityManager em);
 	}
 	
-	@FunctionalInterface
 	public interface JpaCall<T>
 	{
 		T run(EntityManager em);
 	}
 	
-	@FunctionalInterface
 	public interface JdbcRun
 	{
 		void run(Connection con) throws SQLException;
 	}
 	
-	@FunctionalInterface
 	public interface JdbcCall<T>
 	{
 		T run(Connection con) throws SQLException;
@@ -66,12 +60,7 @@ public class DBExecutor implements AutoCloseable
 		try
 		{
 			con.setAutoCommit(false);
-			Map<String, String> props = new HashMap<>(2);
-			props.put("javax.persistence.jdbc.url", jdbcUrl);
-			props.put("hibernate.connection.url", jdbcUrl);
-			emf = Persistence.createEntityManagerFactory(
-					persistenceUnitName, 
-					props);
+			emf = Persistence.createEntityManagerFactory(persistenceUnitName);
 			ok = true;
 		}
 		finally

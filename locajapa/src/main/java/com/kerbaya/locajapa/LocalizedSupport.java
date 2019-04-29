@@ -39,6 +39,7 @@ public class LocalizedSupport
 
      * @throws IllformedLocaleException 
      * if <code>locale</code> has any ill-formed fields.
+     * 
      * @throws NullPointerException 
      * if <code>locale</code> is null.
      */
@@ -46,7 +47,7 @@ public class LocalizedSupport
 	{
 		this.locale = new Locale.Builder().setLocale(locale).build();
 		languageTag = this.locale.toLanguageTag();
-		languageLevel = Utils.getCandidateLocales(this.locale).size();
+		languageLevel = Utils.getCandidateLocales(this.locale).size() - 1;
 	}
 	
 	/**

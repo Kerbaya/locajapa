@@ -1,4 +1,4 @@
-SELECT l
+SELECT l.id, le.languageTag, le.value
 FROM ${entityName} l
-LEFT JOIN FETCH l.localized
-WHERE l.id IN (:idSet)
+LEFT JOIN l.localized le
+WHERE l.id IN ${idSetParam}

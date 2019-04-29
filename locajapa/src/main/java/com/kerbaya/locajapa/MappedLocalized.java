@@ -38,7 +38,7 @@ public abstract class MappedLocalized<T> implements Localized<T>, Serializable
 {
 	private static final long serialVersionUID = -6020122449101759878L;
 
-	private int languageLevel;
+	private int languageLevel = -1;
 	private String languageTag;
 	
 	private transient Locale locale;
@@ -65,8 +65,12 @@ public abstract class MappedLocalized<T> implements Localized<T>, Serializable
 	}
 	
 	@Transient
+	public abstract T getValue();
+	
+	@Transient
 	public Locale getLocale()
 	{
+		String languageTag = getLanguageTag();
 		if (locale == null && languageTag != null)
 		{
 			locale = Locale.forLanguageTag(languageTag);
@@ -78,15 +82,15 @@ public abstract class MappedLocalized<T> implements Localized<T>, Serializable
 		if (locale == null)
 		{
 			this.locale = null;
-			languageTag = null;
-			languageLevel = 0;
+			setLanguageTag(null);
+			setLanguageLevel(-1);
 		}
 		else
 		{
 			LocalizedSupport ls = new LocalizedSupport(locale);
 			this.locale = ls.getLocale();
-			languageTag = ls.getLanguageTag();
-			languageLevel = ls.getLanguageLevel();
+			setLanguageTag(ls.getLanguageTag());
+			setLanguageLevel(ls.getLanguageLevel());
 		}
 	}
 }

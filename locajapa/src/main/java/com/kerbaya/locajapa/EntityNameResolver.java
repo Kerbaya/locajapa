@@ -39,9 +39,11 @@ public interface EntityNameResolver
 		{
 			do
 			{
-				if (type.getAnnotation(Entity.class) != null)
+				Entity anno = type.getAnnotation(Entity.class);
+				if (anno != null)
 				{
-					return type.getName();
+					String name = anno.name();
+					return name.isEmpty() ? type.getSimpleName() : name;
 				}
 			} while ((type = type.getSuperclass()) != null);
 			return null;

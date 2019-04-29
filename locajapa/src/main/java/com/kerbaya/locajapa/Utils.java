@@ -23,9 +23,17 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.ResourceBundle.Control;
+import java.util.WeakHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import javax.persistence.EntityManager;
 
 final class Utils
 {
@@ -56,6 +64,92 @@ final class Utils
 	
 	public static List<Locale> getCandidateLocales(Locale locale)
 	{
-		return CONTROL.getCandidateLocales("", locale);
+		return Collections.unmodifiableList(
+				CONTROL.getCandidateLocales("", locale));
+	}
+	
+	private static final Map<Class<?>, Boolean> WRAP_COL_PARAM = 
+			new WeakHashMap<>();
+	private static final Lock READ_LOCK;
+	private static final Lock WRITE_LOCK;
+	
+	static
+	{
+		ReadWriteLock rwl = new ReentrantReadWriteLock();
+		READ_LOCK = rwl.readLock();
+		WRITE_LOCK = rwl.writeLock();
+	}
+	
+	private static boolean calcWrapColParam(EntityManager em)
+	{
+		Class<?> delType = em.getDelegate().getClass();
+		String delTypeName = delType.getName();
+		if ("org.hibernate.impl.SessionImpl".equals(delTypeName))
+		{
+			return true;
+		}
+		if ("org.apache.openjpa.persistence.EntityManagerImpl".equals(
+				delTypeName))
+		{
+			return true;
+		}
+		if (!"org.hibernate.internal.SessionImpl".equals(delTypeName))
+		{
+			return false;
+		}
+		try
+		{
+			String verStr = (String) delType.getClassLoader()
+					.loadClass("org.hibernate.Version")
+					.getMethod("getVersionString").invoke(null);
+			return verStr.startsWith("4.");
+		}
+		catch (Throwable t)
+		{
+			return false;
+		}
+	}
+	
+	/**
+	 * Determines if a provided entity manager has a bug where JPQL collection
+	 * parameters need to be surrounded by parenthesis
+	 *   
+	 * @param em
+	 * the entity manager that will be tested for the bug
+	 * 
+	 * @return
+	 * {@code true} if JPQL collection parameters must be surrounded by 
+	 * parenthesis, otherwise {@code false}
+	 */
+	public static boolean wrapColParam(EntityManager em)
+	{
+		Class<? extends EntityManager> emType = em.getClass();
+		Boolean wrapColParam;
+		READ_LOCK.lock();
+		try
+		{
+			wrapColParam = WRAP_COL_PARAM.get(emType);
+		}
+		finally
+		{
+			READ_LOCK.unlock();
+		}
+		if (wrapColParam == null)
+		{
+			WRITE_LOCK.lock();
+			try
+			{
+				if ((wrapColParam = WRAP_COL_PARAM.get(emType)) == null)
+				{
+					wrapColParam = calcWrapColParam(em);
+					WRAP_COL_PARAM.put(emType, wrapColParam);
+				}
+			}
+			finally
+			{
+				WRITE_LOCK.unlock();
+			}
+		}
+		return wrapColParam.booleanValue();
 	}
 }

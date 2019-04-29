@@ -45,18 +45,51 @@ public class ValueLoader
 	 */
 	public static final int DEFAULT_BATCH_SIZE = 1000;
 
-	private static final String JPQL_PATTERN = Utils.loadResource(
-			MapLoader.class, "ValueLoader.jpql");
+	private static final Memoization<String> PAREN_JPQL_PATTERN = 
+			new JpqlGenerator(true);
+
+	private static final Memoization<String> NON_PAREN_JPQL_PATTERN = 
+			new JpqlGenerator(false);
+	
 	private static final String ENTITY_NAME_TOKEN = "${entityName}";
+	private static final String ID_SET_PARAM_TOKEN = "${idSetParam}";
+	private static final String LANGUAGE_TAG_SET_PARAM_TOKEN = 
+			"${languageTagSetParam}";
 	private static final String ID_SET_PARAM = "idSet";
 	private static final String LANGUAGE_TAG_SET_PARAM = "languageTagSet";
 	
-	private final Map<String, Map<Object, ValueSupplierImpl<?>>> entityNameMap = 
+	private static final class JpqlGenerator extends Memoization<String>
+	{
+		private final boolean wrapParen;
+
+		public JpqlGenerator(boolean wrapParen)
+		{
+			this.wrapParen = wrapParen;
+		}
+
+		@Override
+		protected String create()
+		{
+			String idSetParamStr = ":" + ID_SET_PARAM;
+			String languageTagSetParamStr = ":" + LANGUAGE_TAG_SET_PARAM;
+			if (wrapParen)
+			{
+				idSetParamStr = "(" + idSetParamStr + ")";
+				languageTagSetParamStr = "(" + languageTagSetParamStr + ")";
+			}
+			return Utils.loadResource(ValueLoader.class, "ValueLoader.jpql")
+					.replace(ID_SET_PARAM_TOKEN, idSetParamStr)
+					.replace(
+							LANGUAGE_TAG_SET_PARAM_TOKEN, 
+							languageTagSetParamStr);
+		}
+	}
+	
+	private final Map<String, Map<Object, ValueLoaderEntry<?>>> entityNameMap = 
 			new HashMap<>();
 
 	private final Set<String> candidateLanguageTags;
 	private final EntityNameResolver entityNameResolver;
-	private final boolean nullAsSupplier;
 	private final int batchSize;
 
 	/**
@@ -71,7 +104,7 @@ public class ValueLoader
 	 */
 	public ValueLoader(Locale locale)
 	{
-		this(locale, null, false, 0);
+		this(locale, null, 0);
 	}
 	
 	/**
@@ -85,23 +118,16 @@ public class ValueLoader
 	 * The resolver that will translate classes to entity names.  Providing 
 	 * {@code null} will use {@link EntityNameResolver#DEFAULT}
 	 * 
-	 * @param nullAsSupplier
-	 * Controls behavior of {@link #getValue(Localizable)} when the provided
-	 * {@code localizable} is {@code null}.  If {@code nullAsSupplier} is {@code false},
-	 * {@link #getValue(Localizable)} returns {@code null}.  if 
-	 * {@code nullAsSupplier} is {@code true}, {@link #getValue(Localizable)}
-	 * returns an instance of {@link ValueSupplier}, whose 
-	 * {@link ValueSupplier#get()} method returns {@code null}.
-	 * 
 	 * @param batchSize
-	 * The maximum number of values returned per query.  Providing 0 or a 
-	 * negative number will use {@link #DEFAULT_BATCH_SIZE}
-	 * 
+	 * The maximum number of localizables for which to search in one query.  
+	 * Providing 0 or a negative number will use {@link #DEFAULT_BATCH_SIZE}.  
+	 * This value should not exceed the maximum number of elements allowed by 
+	 * the JPA implementation (or its underlying database) for a single JPQL 
+	 * collection parameter.
 	 */
 	public ValueLoader(
 			Locale locale, 
 			EntityNameResolver entityNameResolver, 
-			boolean nullAsSupplier,
 			int batchSize)
 	{
 		List<Locale> candidateLocales = Utils.getCandidateLocales(
@@ -116,13 +142,76 @@ public class ValueLoader
 				Collections.unmodifiableSet(candidateLanguageTags);
 		this.entityNameResolver = entityNameResolver == null ? 
 				EntityNameResolver.DEFAULT : entityNameResolver;
-		this.nullAsSupplier = nullAsSupplier;
 		this.batchSize = batchSize <= 0 ? DEFAULT_BATCH_SIZE : batchSize;
+	}
+	
+	private <V> Supplier<V> getValue(
+			Class<?> type, 
+			Object id,
+			Localizable<? extends V> instance)
+	{
+		String entityName = entityNameResolver.resolveEntityName(type);
+		if (entityName == null)
+		{
+			throw new IllegalArgumentException(
+					"Could not resolve entity name: " + type);
+		}
+		
+		Map<Object, ValueLoaderEntry<?>> entityIdMap = entityNameMap.get(
+				entityName);
+		
+		if (entityIdMap == null)
+		{
+			entityIdMap = new HashMap<>();
+			entityNameMap.put(entityName, entityIdMap);
+		}
+		else
+		{
+			@SuppressWarnings("unchecked")
+			ValueLoaderEntry<V> entry = 
+					(ValueLoaderEntry<V>) entityIdMap.get(id);
+			if (entry != null)
+			{
+				return entry;
+			}
+		}
+		
+		ValueLoaderEntry<V> entry = instance == null ?
+				new ValueLoaderEntry<V>()
+				: new ValueLoaderEntry<V>(candidateLanguageTags, instance);
+		entityIdMap.put(id, entry);
+		return entry;
+
+	}
+	
+	/**
+	 * Returns a reference to a value that will be later loaded with 
+	 * {@link #load(EntityManager)}.  If {@link Supplier#get()} is called
+	 * on the returned instance before {@link #load(EntityManager)} is called,
+	 * {@link Supplier#get()} will throw {@link IllegalStateException}.
+	 * 
+	 * @param type
+	 * the entity type
+	 * 
+	 * @param id
+	 * the entity ID
+	 * 
+	 * @return
+	 * the value reference
+	 */
+	public <V> Supplier<V> getValue(
+			Class<? extends Localizable<? extends V>> type, Object id)
+	{
+		if (id == null)
+		{
+			return null;
+		}
+		return getValue(type, id, null);
 	}
 	
 	/**
 	 * Returns a deferred (i.e. "lazy") localized value for the provided 
-	 * localizable entity.  If calling {@link ValueSupplier#get()} is avoided
+	 * localizable entity.  If calling {@link Supplier#get()} is avoided
 	 * until after {@link #load(EntityManager)} is called, all references 
 	 * previously returned by this method are loaded in a single query.
 	 * 
@@ -135,71 +224,42 @@ public class ValueLoader
 	 * @return
 	 * a localized value reference
 	 */
-	public <V> ValueSupplier<V> getValue(Localizable<? extends V> localizable)
+	public <V> Supplier<V> getValue(Localizable<? extends V> localizable)
 	{
 		if (localizable == null)
 		{
-			return nullAsSupplier ? ValueSupplierImpl.<V>ofNull() : null;
+			return null;
 		}
-		
-		String entityName = entityNameResolver.resolveEntityName(
-				localizable.getClass());
-		if (entityName == null)
-		{
-			throw new IllegalArgumentException(
-					"Could not resolve entity name: " + localizable);
-		}
-		
-		Object entityId = localizable.getId();
-		Map<Object, ValueSupplierImpl<?>> entityIdMap = 
-				entityNameMap.get(entityName);
-		
-		if (entityIdMap == null)
-		{
-			entityIdMap = new HashMap<>();
-			entityNameMap.put(entityName, entityIdMap);
-		}
-		else
-		{
-			@SuppressWarnings("unchecked")
-			ValueSupplierImpl<V> entry = 
-					(ValueSupplierImpl<V>) entityIdMap.get(entityId);
-			if (entry != null)
-			{
-				return entry;
-			}
-		}
-		
-		ValueSupplierImpl<V> entry = ValueSupplierImpl.of(
-				candidateLanguageTags, localizable);
-		entityIdMap.put(entityId, entry);
-		return entry;
+		return getValue(
+				localizable.getClass(), localizable.getId(), localizable);
 	}
 	
 	/**
-	 * Loads all values previously returned by {@link #getValue(Localizable)} in
-	 * one query
+	 * Loads all values previously returned by the getValue methods in one query
 	 * 
 	 * @param em
 	 * The entity manager on which the query will be executed
 	 */
 	public void load(EntityManager em)
 	{
-		Map<Object, ValueSupplierImpl<?>> batch = new HashMap<>();
-		for (Entry<String, Map<Object, ValueSupplierImpl<?>>> entityNameEntry: 
+		final String queryPattern = Utils.wrapColParam(em) ? 
+				PAREN_JPQL_PATTERN.get()
+				: NON_PAREN_JPQL_PATTERN.get();
+		Map<Object, ValueLoaderEntry<?>> batch = new HashMap<>();
+		for (Entry<String, Map<Object, ValueLoaderEntry<?>>> entityNameEntry: 
 				entityNameMap.entrySet())
 		{
-			Query q = em.createQuery(JPQL_PATTERN.replace(
+			Query q = em.createQuery(queryPattern.replace(
 							ENTITY_NAME_TOKEN, entityNameEntry.getKey()))
 					.setParameter(
 							LANGUAGE_TAG_SET_PARAM, candidateLanguageTags);
-			Iterator<Entry<Object, ValueSupplierImpl<?>>> entityEntryIter = 
+			Iterator<Entry<Object, ValueLoaderEntry<?>>> entityEntryIter = 
 					entityNameEntry.getValue().entrySet().iterator();
 			do
 			{
-				Entry<Object, ValueSupplierImpl<?>> next = 
+				Entry<Object, ValueLoaderEntry<?>> next = 
 						entityEntryIter.next();
-				ValueSupplierImpl<?> supplier = next.getValue();
+				ValueLoaderEntry<?> supplier = next.getValue();
 				if (supplier.isLoaded())
 				{
 					continue;
@@ -219,25 +279,25 @@ public class ValueLoader
 	}
 	
 	private static void flushBatch(
-			Query q, Map<Object, ValueSupplierImpl<?>> batch)
+			Query q, Map<Object, ValueLoaderEntry<?>> batch)
 	{
 		@SuppressWarnings("unchecked")
 		List<Object[]> queryResults = q.setParameter(
-						ID_SET_PARAM, batch.keySet())
-				.getResultList();
+				ID_SET_PARAM, batch.keySet())
+						.getResultList();
 		for (Object[] queryResult: queryResults)
 		{
-			ValueSupplierImpl<?> vs = batch.remove(queryResult[0]);
+			ValueLoaderEntry<?> vs = batch.remove(queryResult[0]);
 			if (vs == null)
 			{
 				continue;
 			}
-			vs.set(((Localized<?>) queryResult[1]).getValue());
+			vs.set(queryResult[1]);
 		}
 		
-		for (ValueSupplierImpl<?> batchEntry: batch.values())
+		for (ValueLoaderEntry<?> batchEntry: batch.values())
 		{
-			batchEntry.set(null);
+			batchEntry.setNotExists();
 		}
 		
 		batch.clear();

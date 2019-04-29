@@ -20,7 +20,6 @@ package com.kerbaya.locajapa;
 
 import java.util.Collection;
 
-import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
@@ -42,7 +41,7 @@ public class LocalizableString implements Localizable<String>
 		this.id = id;
 	}
 	
-	@OneToMany(mappedBy="localizable", cascade=CascadeType.ALL)
+	@OneToMany(mappedBy="localizable")
 	public Collection<LocalizedString> getLocalized()
 	{
 		return localized;

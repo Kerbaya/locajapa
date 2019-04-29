@@ -18,6 +18,7 @@
  */
 package com.kerbaya.locajapa;
 
+import java.lang.reflect.Method;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.Driver;
@@ -36,15 +37,21 @@ import com.kerbaya.locajapa.CallOverrider.OverrideHandler;
 
 public class ExecuteTriggerDriver implements Driver
 {
+	private static String URL_PREFIX;
+	private static Runnable TRIGGER;
+	
 	private static final String JDBC_PREFIX = "jdbc:";
 	private static final Pattern URL_PATTERN = Pattern.compile(
 			Pattern.quote(JDBC_PREFIX) + "[^:]+:");
 	
-	private final String urlPrefix;
 	private final CallOverrider<Connection> conOx;
-
-	public ExecuteTriggerDriver(String urlPrefix, Runnable trigger)
+	
+	public static void setUrlPrefix(String urlPrefix)
 	{
+		if (URL_PREFIX != null)
+		{
+			throw new IllegalStateException("urlPrefix already set");
+		}
 		if (!URL_PATTERN.matcher(urlPrefix).matches())
 		{
 			throw new IllegalArgumentException(String.format(
@@ -52,41 +59,81 @@ public class ExecuteTriggerDriver implements Driver
 					urlPrefix, 
 					URL_PATTERN.pattern()));
 		}
-		this.urlPrefix = urlPrefix;
+		URL_PREFIX = urlPrefix;
+	}
+	
+	public static void setTrigger(Runnable trigger)
+	{
+		TRIGGER = trigger;
+	}
+	
+	public ExecuteTriggerDriver()
+	{
+		if (URL_PREFIX == null)
+		{
+			throw new IllegalStateException(
+					ExecuteTriggerDriver.class.getSimpleName() 
+					+ ".setUrlPrefix() must be called prior to driver use");
+		}
 		
-		OverrideHandler<Statement> execOverride = (stmt, method, args) -> {
-//			System.out.println(String.format("%s.%s(%s)", stmt.getClass(), method.getName(), Arrays.toString(args)));
-			trigger.run();
-			return method.invoke(stmt, args);
+		OverrideHandler<Statement> execOverride = new OverrideHandler<Statement>() {
+			@Override
+			public Object invoke(Statement subject, Method method,
+					Object[] args) throws Throwable
+			{
+				Runnable trigger = TRIGGER;
+				if (trigger != null)
+				{
+					trigger.run();
+				}
+				return method.invoke(subject, args);
+			}
 		};
 		
 		Builder<Statement> stmtOxb = CallOverrider.builder(Statement.class);
 		addStmtOverrides(stmtOxb, execOverride);
-		CallOverrider<Statement> stmtOx = stmtOxb.build();
+		final CallOverrider<Statement> stmtOx = stmtOxb.build();
 		
 		Builder<PreparedStatement> psOxb = CallOverrider.builder(
 				PreparedStatement.class);
 		addStmtOverrides(psOxb, execOverride);
 		addPsOverrides(psOxb, execOverride);
-		CallOverrider<PreparedStatement> psOx = psOxb.build();
+		final CallOverrider<PreparedStatement> psOx = psOxb.build();
 		
 		Builder<CallableStatement> csOxb = CallOverrider.builder(
 				CallableStatement.class);
 		addStmtOverrides(csOxb, execOverride);
 		addPsOverrides(csOxb, execOverride);
-		CallOverrider<CallableStatement> csOx = csOxb.build();
+		final CallOverrider<CallableStatement> csOx = csOxb.build();
 		
-		OverrideHandler<Connection> wrapStmt = (con, method, args) -> {
-			return stmtOx.create((Statement) method.invoke(con, args));
-		};
+		OverrideHandler<Connection> wrapStmt = new OverrideHandler<Connection>() {
+			@Override
+			public Object invoke(Connection subject, Method method, Object[] args)
+					throws Throwable
+			{
+				return stmtOx.create((Statement) method.invoke(subject, args));
+			}
+		}; 
 		
-		OverrideHandler<Connection> wrapPs = (con, method, args) -> {
-			return psOx.create((PreparedStatement) method.invoke(con, args));
-		};
+		OverrideHandler<Connection> wrapPs = new OverrideHandler<Connection>() {
+			
+			@Override
+			public Object invoke(Connection subject, Method method, Object[] args)
+					throws Throwable
+			{
+				return psOx.create((PreparedStatement) method.invoke(subject, args));
+			}
+		}; 
 		
-		OverrideHandler<Connection> wrapCs = (con, method, args) -> {
-			return csOx.create((CallableStatement) method.invoke(con, args));
-		};
+		OverrideHandler<Connection> wrapCs = new OverrideHandler<Connection>() {
+			
+			@Override
+			public Object invoke(Connection subject, Method method, Object[] args)
+					throws Throwable
+			{
+				return csOx.create((CallableStatement) method.invoke(subject, args));
+			}
+		}; 
 		
 		conOx = CallOverrider.builder(Connection.class)
 				.override("createStatement").with(wrapStmt)
@@ -109,7 +156,6 @@ public class ExecuteTriggerDriver implements Driver
 			OverrideHandler<? super PreparedStatement> oh)
 	{
 		oxb.override("execute").with(oh)
-				.override("executeLargeUpdate").with(oh)
 				.override("executeQuery").with(oh)
 				.override("executeUpdate").with(oh);
 	}
@@ -123,11 +169,6 @@ public class ExecuteTriggerDriver implements Driver
 				.override("execute", String.class, int[].class).with(oh)
 				.override("execute", String.class, String[].class).with(oh)
 				.override("executeBatch").with(oh)
-				.override("executeLargeBatch").with(oh)
-				.override("executeLargeUpdate", String.class).with(oh)
-				.override("executeLargeUpdate", String.class, int.class).with(oh)
-				.override("executeLargeUpdate", String.class, int[].class).with(oh)
-				.override("executeLargeUpdate", String.class, String[].class).with(oh)
 				.override("executeQuery", String.class).with(oh)
 				.override("executeUpdate", String.class).with(oh)
 				.override("executeUpdate", String.class, int.class).with(oh)
@@ -137,11 +178,11 @@ public class ExecuteTriggerDriver implements Driver
 	
 	private String unwrapUrl(String url) throws SQLException
 	{
-		if (url == null || !url.startsWith(urlPrefix))
+		if (url == null || !url.startsWith(URL_PREFIX))
 		{
 			throw new SQLException("Invalid URL: " + url);
 		}
-		return JDBC_PREFIX + url.substring(urlPrefix.length());
+		return JDBC_PREFIX + url.substring(URL_PREFIX.length());
 	}
 
 	@Override
@@ -154,7 +195,7 @@ public class ExecuteTriggerDriver implements Driver
 	@Override
 	public boolean acceptsURL(String url)
 	{
-		return url != null && url.startsWith(urlPrefix);
+		return url != null && url.startsWith(URL_PREFIX);
 	}
 
 	@Override

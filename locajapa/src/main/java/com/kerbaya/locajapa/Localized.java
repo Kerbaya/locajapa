@@ -18,6 +18,8 @@
  */
 package com.kerbaya.locajapa;
 
+import javax.persistence.Transient;
+
 /**
  * Specifies the general contract to which localized value entities must 
  * conform.  Provides a localized value for a {@link Localizable} instance.
@@ -45,6 +47,7 @@ public interface Localized<T>
 	 * @return
 	 * the BCP47 language tag representing the locale
 	 */
+	@Transient
 	String getLanguageTag();
 	
 	/**
@@ -55,6 +58,7 @@ public interface Localized<T>
 	 * @return
 	 * the specificity of the locale
 	 */
+	@Transient
 	int getLanguageLevel();
 	
 	/**
@@ -65,5 +69,6 @@ public interface Localized<T>
 	 * @return
 	 * the localized value
 	 */
-	abstract T getValue();
+	@Transient
+	T getValue();
 }

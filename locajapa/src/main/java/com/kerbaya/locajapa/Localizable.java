@@ -20,6 +20,8 @@ package com.kerbaya.locajapa;
 
 import java.util.Collection;
 
+import javax.persistence.Transient;
+
 /**
  * Specifies the general contract to which localizable entities must conform.
  * 
@@ -37,8 +39,9 @@ public interface Localizable<T>
 	 * @return
 	 * Entity ID
 	 */
+	@Transient
 	Object getId();
-	
+
 	/**
 	 * Returns the localized versions.  The relationship must be mapped in JPA 
 	 * (addressable in JPQL as {@code entity.localized})
@@ -46,5 +49,6 @@ public interface Localizable<T>
 	 * @return
 	 * The localized versions
 	 */
+	@Transient
 	Collection<? extends Localized<? extends T>> getLocalized();
 }

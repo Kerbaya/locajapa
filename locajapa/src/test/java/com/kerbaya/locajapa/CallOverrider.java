@@ -32,7 +32,6 @@ import java.util.Set;
 
 public class CallOverrider<T>
 {
-	@FunctionalInterface
 	public interface OverrideHandler<T>
 	{
 		Object invoke(T subject, Method method, Object[] args)
@@ -50,12 +49,17 @@ public class CallOverrider<T>
 		this.overrides = Collections.unmodifiableMap(new HashMap<>(overrides));
 	}
 
-	public T create(T t)
+	public T create(final T t)
 	{
-		final InvocationHandler ih = (proxy, method, args) -> {
-			OverrideHandler<? super T> oh = overrides.get(method);
-			return oh == null ? 
-					method.invoke(t, args) : oh.invoke(t, method, args);
+		final InvocationHandler ih = new InvocationHandler() {
+			@Override
+			public Object invoke(Object proxy, Method method, Object[] args)
+					throws Throwable
+			{
+				OverrideHandler<? super T> oh = overrides.get(method);
+				return oh == null ? 
+						method.invoke(t, args) : oh.invoke(t, method, args);
+			}
 		};
 		try
 		{
@@ -149,7 +153,7 @@ public class CallOverrider<T>
 				String methodName, Class<?>... parameterTypes) 
 		{
 			final Method method = findMethod(
-					new HashSet<>(), iface, methodName, parameterTypes);
+					new HashSet<Class<?>>(), iface, methodName, parameterTypes);
 			if (method == null)
 			{
 				throw new IllegalArgumentException(String.format(

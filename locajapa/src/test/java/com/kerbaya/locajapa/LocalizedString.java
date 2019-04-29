@@ -52,7 +52,8 @@ public class LocalizedString extends MappedLocalized<String>
 	{
 		this.localizable = localizable;
 	}
-
+	
+	@Override
 	@Basic(optional=false)
 	@Lob
 	public String getValue()
