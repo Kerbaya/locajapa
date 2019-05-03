@@ -1,4 +1,4 @@
 SELECT l.id, le.languageTag, le.value
 FROM ${entityName} l
 LEFT JOIN l.localized le
-WHERE l.id IN ${idSetParam}
+WHERE l.id IN (${idParams})

@@ -190,12 +190,12 @@ public class LocalizableEntityIT
 			@Override
 			public List<String> run(EntityManager em)
 			{
-				List<Supplier<String>> sups = new ArrayList<>(
+				List<ValueReference<String>> sups = new ArrayList<>(
 						localizableIdSet.size());
 				ValueLoader vl = new ValueLoader(locale);
 				for (Long id: localizableIdSet)
 				{
-					final Supplier<String> sup;
+					final ValueReference<String> sup;
 					if (loadType.useEm)
 					{
 						final LocalizableString ls = loadType.useRef ?
@@ -215,7 +215,7 @@ public class LocalizableEntityIT
 					vl.load(em);
 				}
 				List<String> result = new ArrayList<>(sups.size());
-				for (Supplier<String> sup: sups)
+				for (ValueReference<String> sup: sups)
 				{
 					result.add(sup.get());
 				}
@@ -241,12 +241,10 @@ public class LocalizableEntityIT
 
 		for (LoadType loadType: EnumSet.allOf(LoadType.class))
 		{
-			System.out.println(loadType);
 			Assert.assertEquals(
 					base, 
 					loadValues(
-							LOCALIZABLES.keySet(), Locale.ENGLISH, loadType));
+							LOCALIZABLES.keySet(), testLocale, loadType));
 		}
-		Assert.assertNotNull(base);
 	}
 }

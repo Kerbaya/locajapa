@@ -91,7 +91,7 @@
 						</properties>
 						<javaHome>${jdk8.home}</javaHome>
 						<parallelThreads>4</parallelThreads>
-						<invokerTest>implementations/datanucleus-4.0/pom.xml</invokerTest>
+						<invokerTest>implementations/*/pom.xml</invokerTest>
 					</configuration>
 				</execution>
 			</executions>

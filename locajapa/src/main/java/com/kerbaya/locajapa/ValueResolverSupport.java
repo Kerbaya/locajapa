@@ -18,41 +18,59 @@
  */
 package com.kerbaya.locajapa;
 
+import java.util.Iterator;
 import java.util.Set;
 
-final class LazyValueResolver<V> implements Resolver<V>
+final class ValueResolverSupport<T, L, V> implements Resolver<V>
 {
-
-	private static final long serialVersionUID = 5557722038223945717L;
-
-	private final Set<String> candidateLanguageTags;
-	private final Localizable<? extends V> localizable;
 	
-	public LazyValueResolver(
+	private static final long serialVersionUID = -2843094047182274684L;
+	
+	private final Set<String> candidateLanguageTags;
+	private final T localizable;
+	private final LocalizedResolver<? super T, L, ? extends V> localizedResolver;
+	
+	public ValueResolverSupport(
 			Set<String> candidateLanguageTags,
-			Localizable<? extends V> localizable)
+			T localizable,
+			LocalizedResolver<? super T, L, ? extends V> localizedResolver)
 	{
 		this.candidateLanguageTags = candidateLanguageTags;
 		this.localizable = localizable;
+		this.localizedResolver = localizedResolver;
+	}
+	
+	public static <T, L, V> V resolve(
+			Set<String> candidateLanguageTags, 
+			T localizable, 
+			LocalizedResolver<? super T, L, ? extends V> localizedResolver)
+	{
+		if (candidateLanguageTags.isEmpty())
+		{
+			return null;
+		}
+		int matchLanguageLevel = -1;
+		L match = null;
+		Iterator<? extends L> iter = localizedResolver.getLocalized(
+				localizable);
+		while (iter.hasNext())
+		{
+			L next = iter.next();
+			int languageLevel = localizedResolver.getLanguageLevel(next);
+			if ((match == null || languageLevel > matchLanguageLevel)
+					&& candidateLanguageTags.contains(
+							localizedResolver.getLanguageTag(next)))
+			{
+				match = next;
+				matchLanguageLevel = languageLevel;
+			}
+		}
+		return match == null ? null : localizedResolver.getValue(match);
 	}
 	
 	@Override
 	public V get()
 	{
-		int matchLanguageLevel = -1;
-		Localized<? extends V> match = null;
-		for (Localized<? extends V> localized: localizable.getLocalized())
-		{
-			int languageLevel = localized.getLanguageLevel();
-			if ((match == null || languageLevel > matchLanguageLevel)
-					&& candidateLanguageTags.contains(
-							localized.getLanguageTag()))
-			{
-				match = localized;
-				matchLanguageLevel = languageLevel;
-			}
-		}
-		return match == null ? null : match.getValue();
+		return resolve(candidateLanguageTags, localizable, localizedResolver);
 	}
-	
 }

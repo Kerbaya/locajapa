@@ -1,0 +1,14 @@
+SELECT l.${idProperty}, le.${valueProperty}
+FROM ${entityName} l
+LEFT JOIN l.${localizedProperty} le
+WHERE
+	l.${idProperty} IN (${idParams})
+	AND le.${languageTagProperty} IN (${languageTagParams})
+	AND le.${languageLevelProperty} = (
+		SELECT MAX(le2.${languageLevelProperty})
+		FROM ${entityName} l2
+		JOIN l2.${localizedProperty} le2
+		WHERE
+			l2.${idProperty} = l.${idProperty}
+			AND le2.${languageTagProperty} IN (${languageTagParams})
+	)

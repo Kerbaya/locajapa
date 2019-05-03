@@ -19,11 +19,10 @@
 package com.kerbaya.locajapa;
 
 import java.io.Serializable;
-import java.util.Set;
 
 import javax.persistence.EntityNotFoundException;
 
-final class ValueLoaderEntry<V> implements Supplier<V>, Serializable
+final class LazyValueReference<V> implements ValueReference<V>, Serializable
 {
 
 	private static final long serialVersionUID = -3737835233743967663L;
@@ -32,17 +31,9 @@ final class ValueLoaderEntry<V> implements Supplier<V>, Serializable
 	protected V value;
 	protected boolean exists;
 	
-	public ValueLoaderEntry()
+	public LazyValueReference(Resolver<V> preLoadResolver)
 	{
-		preLoadResolver = NonResolvable.instance();
-	}
-	
-	public ValueLoaderEntry(
-			Set<String> candidateLanguageTags, 
-			Localizable<? extends V> localizable)
-	{
-		preLoadResolver = new LazyValueResolver<>(
-				candidateLanguageTags, localizable);
+		this.preLoadResolver = preLoadResolver;
 	}
 
 	@Override

@@ -18,28 +18,7 @@
  */
 package com.kerbaya.locajapa;
 
-abstract class Memoization<T>
+public interface IdResolver<T>
 {
-	private final Object lock = new Object();
-	
-	private volatile boolean created;
-	private T value;
-	
-	protected abstract T create();
-	
-	public T get()
-	{
-		if (!created)
-		{
-			synchronized(lock)
-			{
-				if (!created)
-				{
-					value = create();
-					created = true;
-				}
-			}
-		}
-		return value;
-	}
+	Object getId(T entity);
 }

@@ -44,39 +44,14 @@ public class MapLoader
 	 */
 	public static final int DEFAULT_BATCH_SIZE = 1000;
 
-	private static final Memoization<String> PAREN_JPQL_PATTERN = 
-			new JpqlGenerator(true);
-	private static final Memoization<String> NON_PAREN_JPQL_PATTERN = 
-			new JpqlGenerator(false);
+	private static final String JPQL_PATTERN = Utils.loadResource(
+			MapLoader.class, "MapLoader.jpql");
 	
-	private static final String ID_SET_PARAM_TOKEN = "${idSetParam}";
+	private static final String ID_PARAMS_TOKEN = "${idParams}";
 	private static final String ENTITY_NAME_TOKEN = "${entityName}";
-	private static final String ID_SET_PARAM = "idSet";
 	
 	private final Map<String, Map<Object, MapLoaderEntry<?>>> entityNameMap = 
 			new HashMap<>();
-	
-	private static final class JpqlGenerator extends Memoization<String>
-	{
-		private final boolean wrapParen;
-
-		public JpqlGenerator(boolean wrapParen)
-		{
-			this.wrapParen = wrapParen;
-		}
-
-		@Override
-		protected String create()
-		{
-			String paramStr = ":" + ID_SET_PARAM;
-			if (wrapParen)
-			{
-				paramStr = "(" + paramStr + ")";
-			}
-			return Utils.loadResource(MapLoader.class, "MapLoader.jpql")
-					.replace(ID_SET_PARAM_TOKEN, paramStr);
-		}
-	}
 	
 	private final EntityNameResolver entityNameResolver;
 	private final boolean nullAsEmptyMap;
@@ -201,15 +176,13 @@ public class MapLoader
 	 */
 	public void load(EntityManager em)
 	{
-		final String queryPattern = Utils.wrapColParam(em) ? 
-				PAREN_JPQL_PATTERN.get()
-				: NON_PAREN_JPQL_PATTERN.get();
 		Map<Object, MapLoaderEntry<?>> batch = new HashMap<>();
 		for (Entry<String, Map<Object, MapLoaderEntry<?>>> entityNameEntry: 
 				entityNameMap.entrySet())
 		{
-			Query q = em.createQuery(queryPattern.replace(
-					ENTITY_NAME_TOKEN, entityNameEntry.getKey()));
+			String queryPattern = JPQL_PATTERN.replace(
+					ENTITY_NAME_TOKEN, entityNameEntry.getKey());
+			Query q = null;
 			Iterator<Entry<Object, MapLoaderEntry<?>>> entityEntryIter = 
 					entityNameEntry.getValue().entrySet().iterator();
 			do
@@ -223,37 +196,53 @@ public class MapLoader
 				batch.put(next.getKey(), mapView);
 				if (batch.size() == batchSize)
 				{
+					if (q == null)
+					{
+						q = em.createQuery(queryPattern.replace(
+								ID_PARAMS_TOKEN, 
+								Utils.createParameterPlaceholders(
+										1, batchSize)));
+					}
 					flushBatch(q, batch);
 				}
 			} while (entityEntryIter.hasNext());
 			
 			if (!batch.isEmpty())
 			{
-				flushBatch(q, batch);
+				flushBatch(
+						em.createQuery(queryPattern.replace(
+								ID_PARAMS_TOKEN, 
+								Utils.createParameterPlaceholders(
+										1, batchSize))), 
+						batch);
 			}
 		}
 	}
 	
-	private static void flushBatch(Query q, Map<Object, MapLoaderEntry<?>> batch)
+	private static void flushBatch(
+			Query q, Map<Object, MapLoaderEntry<?>> batch)
 	{
-		@SuppressWarnings("unchecked")
-		List<Object[]> queryResults = 
-				q.setParameter(ID_SET_PARAM, batch.keySet())
-						.getResultList();
-		for (Object[] queryResult: queryResults)
+		int position = 1;
+		for (Object key: batch.keySet())
 		{
-			MapLoaderEntry<?> entry = batch.get(queryResult[0]);
+			q.setParameter(position++, key);
+		}
+		@SuppressWarnings("unchecked")
+		List<Object[]> rowList = q.getResultList();
+		for (Object[] row: rowList)
+		{
+			MapLoaderEntry<?> entry = batch.get(row[0]);
 			if (entry != null)
 			{
-				if (queryResult[1] == null)
+				if (row[1] == null)
 				{
 					entry.setEmpty();
 				}
 				else
 				{
 					entry.addFromBatch(
-							Locale.forLanguageTag((String) queryResult[1]),
-							queryResult[2]);
+							Locale.forLanguageTag((String) row[1]),
+							row[2]);
 				}
 			}
 		}

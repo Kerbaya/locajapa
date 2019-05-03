@@ -2,13 +2,13 @@ SELECT l.id, le.value
 FROM ${entityName} l
 LEFT JOIN l.localized le
 WHERE
-	(l.id IN ${idSetParam})
-	AND (le.languageTag IN ${languageTagSetParam})
+	l.id IN (${idParams})
+	AND le.languageTag IN (${languageTagParams})
 	AND le.languageLevel = (
 		SELECT MAX(le2.languageLevel)
 		FROM ${entityName} l2
 		JOIN l2.localized le2
 		WHERE
 			l2.id = l.id
-			AND (le2.languageTag IN ${languageTagSetParam})
+			AND le2.languageTag IN (${languageTagParams})
 	)

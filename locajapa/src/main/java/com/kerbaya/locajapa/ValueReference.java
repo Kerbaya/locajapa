@@ -28,7 +28,7 @@ import javax.persistence.EntityNotFoundException;
  * @param <V>
  * The type of localized value
  */
-public interface Supplier<V>
+public interface ValueReference<V>
 {
 	
 	/**
@@ -47,7 +47,7 @@ public interface Supplier<V>
 	 * {@link ValueLoader#getValue(Class, Object)}).
 	 * 
 	 * @throws EntityNotFoundException
-	 * the localizable instance that was to produce the value does not exist
+	 * a non-existent localizable was referenced for this instance
 	 */
 	V get();
 }

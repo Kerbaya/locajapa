@@ -23,22 +23,20 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.ResourceBundle.Control;
-import java.util.WeakHashMap;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import javax.persistence.EntityManager;
+import java.util.Set;
 
 final class Utils
 {
 	private static final Control CONTROL = Control.getControl(
 			Control.FORMAT_DEFAULT);
+	private static final String PARAMETER_PREFIX = "?";
+	private static final String PARAMETER_SEPARATOR = ", ";
 	
 	private Utils() {}
 	
@@ -68,88 +66,34 @@ final class Utils
 				CONTROL.getCandidateLocales("", locale));
 	}
 	
-	private static final Map<Class<?>, Boolean> WRAP_COL_PARAM = 
-			new WeakHashMap<>();
-	private static final Lock READ_LOCK;
-	private static final Lock WRITE_LOCK;
-	
-	static
+	public static Set<String> getCandidateLanguageTags(Locale locale)
 	{
-		ReadWriteLock rwl = new ReentrantReadWriteLock();
-		READ_LOCK = rwl.readLock();
-		WRITE_LOCK = rwl.writeLock();
+		Collection<Locale> candidates = CONTROL.getCandidateLocales("", locale);
+		Set<String> set = new HashSet<>(candidates.size());
+		for (Locale candidate: candidates)
+		{
+			set.add(candidate.toLanguageTag());
+		}
+		return Collections.unmodifiableSet(set);
 	}
 	
-	private static boolean calcWrapColParam(EntityManager em)
+	public static String createParameterPlaceholders(int start, int count)
 	{
-		Class<?> delType = em.getDelegate().getClass();
-		String delTypeName = delType.getName();
-		if ("org.hibernate.impl.SessionImpl".equals(delTypeName))
+		boolean addedFirst = false;
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < count; i++)
 		{
-			return true;
-		}
-		if ("org.apache.openjpa.persistence.EntityManagerImpl".equals(
-				delTypeName))
-		{
-			return true;
-		}
-		if (!"org.hibernate.internal.SessionImpl".equals(delTypeName))
-		{
-			return false;
-		}
-		try
-		{
-			String verStr = (String) delType.getClassLoader()
-					.loadClass("org.hibernate.Version")
-					.getMethod("getVersionString").invoke(null);
-			return verStr.startsWith("4.");
-		}
-		catch (Throwable t)
-		{
-			return false;
-		}
-	}
-	
-	/**
-	 * Determines if a provided entity manager has a bug where JPQL collection
-	 * parameters need to be surrounded by parenthesis
-	 *   
-	 * @param em
-	 * the entity manager that will be tested for the bug
-	 * 
-	 * @return
-	 * {@code true} if JPQL collection parameters must be surrounded by 
-	 * parenthesis, otherwise {@code false}
-	 */
-	public static boolean wrapColParam(EntityManager em)
-	{
-		Class<? extends EntityManager> emType = em.getClass();
-		Boolean wrapColParam;
-		READ_LOCK.lock();
-		try
-		{
-			wrapColParam = WRAP_COL_PARAM.get(emType);
-		}
-		finally
-		{
-			READ_LOCK.unlock();
-		}
-		if (wrapColParam == null)
-		{
-			WRITE_LOCK.lock();
-			try
+			if (addedFirst)
 			{
-				if ((wrapColParam = WRAP_COL_PARAM.get(emType)) == null)
-				{
-					wrapColParam = calcWrapColParam(em);
-					WRAP_COL_PARAM.put(emType, wrapColParam);
-				}
+				sb.append(PARAMETER_SEPARATOR);
 			}
-			finally
+			else
 			{
-				WRITE_LOCK.unlock();
+				addedFirst = true;
 			}
+			sb.append(PARAMETER_PREFIX);
+			sb.append(start + i);
 		}
-		return wrapColParam.booleanValue();
+		return sb.toString();
 	}
 }
