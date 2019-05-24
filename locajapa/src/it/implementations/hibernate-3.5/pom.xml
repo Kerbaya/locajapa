@@ -11,6 +11,24 @@
 
 <artifactId>locajapa-it</artifactId>
 
+<build>
+	<pluginManagement>
+		<plugins>
+			<plugin>
+				<artifactId>maven-failsafe-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<!-- 
+						Doesn't like com.kerbaya.locajapa.Localizable.getLocalized()
+						-->
+						<exclude>LocalizableStringIT</exclude>
+					</excludes>
+				</configuration>
+			</plugin>
+		</plugins>
+	</pluginManagement>
+</build>
+
 <dependencies>
 	<dependency>
 	    <groupId>org.hibernate</groupId>

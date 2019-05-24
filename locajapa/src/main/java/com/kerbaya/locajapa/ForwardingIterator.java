@@ -20,48 +20,27 @@ package com.kerbaya.locajapa;
 
 import java.util.Iterator;
 
-final class ForwardingIterator<V> implements Iterator<V>
+abstract class ForwardingIterator<V> extends Forwarding implements Iterator<V>
 {
-	private final Resolver<Iterator<V>> supplier;
-	
-	public ForwardingIterator(Resolver<Iterator<V>> supplier)
-	{
-		this.supplier = supplier;
-	}
+	private static final long serialVersionUID = -3116883977935450263L;
 
+	protected abstract Iterator<V> delegate();
+	
 	@Override
 	public boolean hasNext()
 	{
-		return supplier.get().hasNext();
+		return delegate().hasNext();
 	}
 
 	@Override
 	public V next()
 	{
-		return supplier.get().next();
-	}
-	
-	@Override
-	public boolean equals(Object obj)
-	{
-		return supplier.get().equals(obj);
+		return delegate().next();
 	}
 	
 	@Override
 	public void remove()
 	{
-		supplier.get().remove();
-	}
-	
-	@Override
-	public int hashCode()
-	{
-		return supplier.get().hashCode();
-	}
-	
-	@Override
-	public String toString()
-	{
-		return supplier.get().toString();
+		delegate().remove();
 	}
 }

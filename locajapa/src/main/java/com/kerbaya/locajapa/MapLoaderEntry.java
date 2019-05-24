@@ -27,43 +27,18 @@ import javax.persistence.EntityNotFoundException;
 
 final class MapLoaderEntry<V> extends ForwardingMap<Locale, V>
 {
+	private static final long serialVersionUID = -974408044066794976L;
 
-	private static final long serialVersionUID = -1068930046826923113L;
-
-	private static final class LocalizedMapResolver<V> 
-			implements Resolver<Map<Locale, V>>
-	{
-		private static final long serialVersionUID = -3463630721962149937L;
-
-		private final Localizable<? extends V> localizable;
-
-		public LocalizedMapResolver(Localizable<? extends V> localizable)
-		{
-			this.localizable = localizable;
-		}
-
-		@Override
-		public Map<Locale, V> get()
-		{
-			return new LocalizedMap<V>(localizable.getLocalized());
-		}
-	}
-	
 	private Resolver<Map<Locale, V>> preLoadResolver;
 	private Map<Locale, V> map;
 	
-	public MapLoaderEntry(Localizable<? extends V> localizable)
+	public MapLoaderEntry(Resolver<Map<Locale, V>> preLoadResolver)
 	{
-		preLoadResolver = new LocalizedMapResolver<>(localizable);
-	}
-	
-	public MapLoaderEntry()
-	{
-		preLoadResolver = NonResolvable.instance();
+		this.preLoadResolver = preLoadResolver;
 	}
 	
 	@Override
-	protected Map<Locale, V> build()
+	protected Map<Locale, V> delegate()
 	{
 		if (preLoadResolver != null)
 		{
@@ -73,13 +48,9 @@ final class MapLoaderEntry<V> extends ForwardingMap<Locale, V>
 			}
 			catch (EntityNotFoundException e)
 			{
-				map = null;
+				map = Collections.emptyMap();
 			}
 			preLoadResolver = null;
-		}
-		if (map == null)
-		{
-			throw new EntityNotFoundException();
 		}
 		return map;
 	}
@@ -89,27 +60,24 @@ final class MapLoaderEntry<V> extends ForwardingMap<Locale, V>
 		return preLoadResolver == null;
 	}
 	
-	public void setEmpty()
-	{
-		assert preLoadResolver != null;
-		map = Collections.emptyMap();
-	}
-	
-	@SuppressWarnings("unchecked")
-	public void addFromBatch(Locale locale, Object value)
+	public void addFromBatch(Locale locale, V value)
 	{
 		assert preLoadResolver != null;
 		if (map == null)
 		{
 			map = new HashMap<>();
 		}
-		map.put(locale, (V) value);
+		map.put(locale, value);
 	}
 	
 	public void finalizeBatch()
 	{
 		assert preLoadResolver != null;
-		if (map != null && !map.isEmpty())
+		if (map == null)
+		{
+			map = Collections.emptyMap();
+		}
+		else
 		{
 			map = Collections.unmodifiableMap(map);
 		}

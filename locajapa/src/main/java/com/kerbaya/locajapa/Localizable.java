@@ -18,12 +18,10 @@
  */
 package com.kerbaya.locajapa;
 
-import java.util.Collection;
-
 import javax.persistence.Transient;
 
 /**
- * Specifies the general contract to which localizable entities must conform.
+ * Specifies a general contract to which localizable entities must conform.
  * 
  * @author Glenn.Lane@kerbaya.com
  *
@@ -50,5 +48,5 @@ public interface Localizable<T>
 	 * The localized versions
 	 */
 	@Transient
-	Collection<? extends Localized<? extends T>> getLocalized();
+	Iterable<? extends Localized<? extends T>> getLocalized();
 }

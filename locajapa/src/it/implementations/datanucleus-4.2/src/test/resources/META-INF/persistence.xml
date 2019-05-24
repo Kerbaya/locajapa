@@ -8,6 +8,8 @@
 <class>com.kerbaya.locajapa.LocalizableString</class>
 <class>com.kerbaya.locajapa.LocalizedString</class>
 <class>com.kerbaya.locajapa.MappedLocalized</class>
+<class>com.kerbaya.locajapa.LocalizableLink</class>
+<class>com.kerbaya.locajapa.LocalizedLink</class>
 
 <properties>
 	<property name="openjpa.RuntimeUnenhancedClasses" value="supported"/>

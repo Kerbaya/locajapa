@@ -54,7 +54,7 @@ public abstract class MappedLocalized<T> implements Localized<T>, Serializable
 	}
 	
 	@Override
-	@Column(nullable=false, length=LANGUAGE_TAG_LENGTH)
+	@Column(nullable=false, length=LocalizedSupport.LANGUAGE_TAG_LENGTH)
 	public String getLanguageTag()
 	{
 		return languageTag;

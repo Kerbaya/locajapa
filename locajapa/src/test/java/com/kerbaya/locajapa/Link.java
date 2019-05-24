@@ -18,18 +18,55 @@
  */
 package com.kerbaya.locajapa;
 
-import java.util.Collection;
-import java.util.Locale;
+import java.util.Objects;
 
-import org.junit.Test;
-
-public class ImplTestTest
+public final class Link
 {
-	@Test
-	public void test()
+	private final String href;
+	private final String text;
+	
+	public Link(String href, String text)
 	{
-		ImplTest it = new ImplTest(Locale.ENGLISH);
-		Localizable<String> fef = null;
-		it.getValue(fef);
+		this.href = href;
+		this.text = text;
+	}
+
+	public String getHref()
+	{
+		return href;
+	}
+
+	public String getText()
+	{
+		return text;
+	}
+
+	
+	@Override
+	public int hashCode()
+	{
+		return Objects.hash(href, text);
+	}
+	
+	@Override
+	public boolean equals(Object obj)
+	{
+		if (obj == this)
+		{
+			return true;
+		}
+		if (!(obj instanceof Link))
+		{
+			return false;
+		}
+		Link other = (Link) obj;
+		return Objects.equals(href, other.href)
+				&& Objects.equals(text, other.text);
+	}
+	
+	@Override
+	public String toString()
+	{
+		return "href=" + href + ", text=" + text;
 	}
 }

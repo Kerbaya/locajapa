@@ -1,0 +1,5 @@
+SELECT l.${idProperty}, le.${languageTagProperty}${valueProperties}
+FROM ${entityName} l
+JOIN l.${localizedProperty} le
+WHERE
+	l.${idProperty} IN (${idParams})

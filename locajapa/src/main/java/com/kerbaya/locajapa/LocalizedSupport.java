@@ -29,6 +29,12 @@ import java.util.Locale;
  */
 public class LocalizedSupport
 {
+	/**
+	 * The minimum length that should be considered for 
+	 * {@link #getLanguageTag()} (see RFC-5646 4.4.1)
+	 */
+	public static final int LANGUAGE_TAG_LENGTH = 35;
+
 	private final Locale locale;
 	private final String languageTag;
 	private final int languageLevel;

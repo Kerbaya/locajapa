@@ -39,4 +39,9 @@ final class NonResolvable<V> implements Resolver<V>
 		return (NonResolvable<V>) INSTANCE;
 	}
 	
+	protected Object readResolve()
+	{
+		return INSTANCE;
+	}
+
 }

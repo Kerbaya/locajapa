@@ -90,7 +90,7 @@
 							<test.jar>${project.build.directory}/${project.build.finalName}-tests.jar</test.jar>
 						</properties>
 						<javaHome>${jdk8.home}</javaHome>
-						<parallelThreads>4</parallelThreads>
+						<parallelThreads>2</parallelThreads>
 						<invokerTest>implementations/*/pom.xml</invokerTest>
 					</configuration>
 				</execution>
@@ -100,12 +100,6 @@
 </build>
 
 <dependencies>
-	<dependency>
-		<groupId>javax.persistence</groupId>
-		<artifactId>persistence-api</artifactId>
-		<version>1.0.2</version>
-		<scope>provided</scope>
-	</dependency>
 	<dependency>
 		<groupId>junit</groupId>
 		<artifactId>junit</artifactId>
@@ -118,6 +112,19 @@
 		<version>1.4.199</version>
 		<scope>test</scope>
 	</dependency>
+	<dependency>
+		<groupId>javax.persistence</groupId>
+		<artifactId>persistence-api</artifactId>
+		<version>1.0.2</version>
+		<scope>provided</scope>
+	</dependency>
+	<dependency>
+		<groupId>com.google.guava</groupId>
+		<artifactId>guava</artifactId>
+		<version>20.0</version>
+		<scope>test</scope>
+	</dependency>
+
 </dependencies>
 
 </project>

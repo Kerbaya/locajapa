@@ -18,241 +18,55 @@
  */
 package com.kerbaya.locajapa;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import javax.persistence.EntityManager;
-import javax.persistence.Query;
 
 /**
- * Provides translation of {@link Localizable} instances into maps that 
- * associate Locale to localized values.  Supports batch loading of multiple 
- * instances in one query
+ * Assembles all localized values for localizable entities into a map
  * 
  * @author Glenn.Lane@kerbaya.com
  *
+ * @param <T>
+ * The localizable type handled by this instance
+ * 
+ * @param <V>
+ * The localized value handled by this instance
  */
-public class MapLoader
+public interface MapLoader<T, V>
 {
 	/**
-	 * The default maximum number of instances to load per query
-	 */
-	public static final int DEFAULT_BATCH_SIZE = 1000;
-
-	private static final String JPQL_PATTERN = Utils.loadResource(
-			MapLoader.class, "MapLoader.jpql");
-	
-	private static final String ID_PARAMS_TOKEN = "${idParams}";
-	private static final String ENTITY_NAME_TOKEN = "${entityName}";
-	
-	private final Map<String, Map<Object, MapLoaderEntry<?>>> entityNameMap = 
-			new HashMap<>();
-	
-	private final EntityNameResolver entityNameResolver;
-	private final boolean nullAsEmptyMap;
-	private final int batchSize;
-	
-	public MapLoader()
-	{
-		this(null, false, 0);
-	}
-	
-	public MapLoader(
-			EntityNameResolver enr, boolean nullAsEmptyMap, int batchSize)
-	{
-		this.entityNameResolver = enr == null ? 
-				EntityNameResolver.DEFAULT : enr;
-		this.nullAsEmptyMap = nullAsEmptyMap;
-		this.batchSize = batchSize <= 0 ? DEFAULT_BATCH_SIZE : batchSize;
-	}
-	
-	private <V> Map<Locale, V> getMap(
-			Class<?> type, Object id, Localizable<? extends V> instance)
-	{
-		String entityName = entityNameResolver.resolveEntityName(type);
-		if (entityName == null)
-		{
-			throw new IllegalArgumentException(
-					"Could not resolve entity name: " + type);
-		}
-		
-		Map<Object, MapLoaderEntry<?>> entityIdMap = entityNameMap.get(entityName);
-		
-		if (entityIdMap == null)
-		{
-			entityIdMap = new HashMap<>();
-			entityNameMap.put(entityName, entityIdMap);
-		}
-		else
-		{
-			@SuppressWarnings("unchecked")
-			MapLoaderEntry<V> entry = (MapLoaderEntry<V>) entityIdMap.get(id);
-			if (entry != null)
-			{
-				return entry;
-			}
-		}
-		
-		MapLoaderEntry<V> entry = instance == null ? 
-				new MapLoaderEntry<V>() : new MapLoaderEntry<V>(instance);
-		entityIdMap.put(id, entry);
-		return entry;
-	}
-
-	/**
-	 * Translates a provided {@link Localizable} instance into a map.  Note that
-	 * the returned map is an unmodifiable view of the {@link Localizable} 
-	 * instance.  The collection required to produce map data will only be
-	 * loaded when necessary (when calling {@link Map#size()} or iterating 
-	 * entries for example).  All maps returned by this instance may be 
-	 * loaded in a single query later, if load-triggering is avoided before 
-	 * calling {@link #load(EntityManager)}.
+	 * Creates a locale-value map for a provided localizable entity
 	 * 
 	 * @param localizable
-	 * The instance to translate
-	 * 
-	 * @param <V>
-	 * The localized value type
+	 * the localizable entity for which a map should be created
 	 * 
 	 * @return
-	 * the translated map for the provided localizable.  returns {@code null} if
-	 * the provided {@code localizable} is {@code null}
+	 * the locale-value map for the provided localizable.  Returns {@code null}
+	 * if {@code localizable} was null
 	 */
-	public <V> Map<Locale, V> getMap(Localizable<? extends V> localizable)
-	{
-		if (localizable == null)
-		{
-			return nullAsEmptyMap ? Collections.<Locale, V>emptyMap() : null;
-		}
-		
-		return getMap(localizable.getClass(), localizable.getId(), localizable);
-	}
+	Map<Locale, V> getMap(T localizable);
+	
 	
 	/**
-	 * Translates a reference to a {@link Localizable} into a map.  Note that if
-	 * any methods from the returned map are called prior to calling 
-	 * {@link #load(EntityManager)} on this instance, those map methods will 
-	 * throw {@link IllegalStateException}
+	 * Creates a locale-value map for a provided id of a localizable entity
 	 * 
-	 * @param type
-	 * the entity type
-	 * 
-	 * @param id
-	 * the entity ID
-	 * 
-	 * @param <V>
-	 * The localized value type
+	 * @param localizable
+	 * the localizable entity id for which a map should be created
 	 * 
 	 * @return
-	 * the translated map for the provided localizable.  If {@code id} is 
-	 * {@code null} and {@code nullAsEmptyMap} is {@code true}, returns an empty
-	 * map.  If {@code id} is {@code null} and {@code nullAsEmptyMap} is 
-	 * {@code false}, returns {@code null} (see 
-	 * {@link #MapLoader(EntityNameResolver, boolean, int)} regarding behavior
-	 * of {@code nullAsEmptyMap} behavior)
+	 * the locale-value map for the provided localizable.  Returns {@code null}
+	 * if {@code id} was null
 	 */
-	public <V> Map<Locale, V> getMap(
-			Class<? extends Localizable<? extends V>> type, Object id)
-	{
-		if (id == null)
-		{
-			return nullAsEmptyMap ? Collections.<Locale, V>emptyMap() : null;
-		}
-		
-		return getMap(type, id, null);
-	}
+	Map<Locale, V> getMapById(Object id);
 	
 	/**
-	 * Loads all maps previously returned by {@link #getMap(Localizable)} in
-	 * one query
+	 * Populates all maps previously generated by this instance
 	 * 
 	 * @param em
-	 * The entity manager on which the query will be executed
+	 * the entity manager associated to localizable entities previously provided
+	 * to this instance
 	 */
-	public void load(EntityManager em)
-	{
-		Map<Object, MapLoaderEntry<?>> batch = new HashMap<>();
-		for (Entry<String, Map<Object, MapLoaderEntry<?>>> entityNameEntry: 
-				entityNameMap.entrySet())
-		{
-			String queryPattern = JPQL_PATTERN.replace(
-					ENTITY_NAME_TOKEN, entityNameEntry.getKey());
-			Query q = null;
-			Iterator<Entry<Object, MapLoaderEntry<?>>> entityEntryIter = 
-					entityNameEntry.getValue().entrySet().iterator();
-			do
-			{
-				Entry<Object, MapLoaderEntry<?>> next = entityEntryIter.next();
-				MapLoaderEntry<?> mapView = next.getValue();
-				if (mapView.isLoaded())
-				{
-					continue;
-				}
-				batch.put(next.getKey(), mapView);
-				if (batch.size() == batchSize)
-				{
-					if (q == null)
-					{
-						q = em.createQuery(queryPattern.replace(
-								ID_PARAMS_TOKEN, 
-								Utils.createParameterPlaceholders(
-										1, batchSize)));
-					}
-					flushBatch(q, batch);
-				}
-			} while (entityEntryIter.hasNext());
-			
-			if (!batch.isEmpty())
-			{
-				flushBatch(
-						em.createQuery(queryPattern.replace(
-								ID_PARAMS_TOKEN, 
-								Utils.createParameterPlaceholders(
-										1, batchSize))), 
-						batch);
-			}
-		}
-	}
-	
-	private static void flushBatch(
-			Query q, Map<Object, MapLoaderEntry<?>> batch)
-	{
-		int position = 1;
-		for (Object key: batch.keySet())
-		{
-			q.setParameter(position++, key);
-		}
-		@SuppressWarnings("unchecked")
-		List<Object[]> rowList = q.getResultList();
-		for (Object[] row: rowList)
-		{
-			MapLoaderEntry<?> entry = batch.get(row[0]);
-			if (entry != null)
-			{
-				if (row[1] == null)
-				{
-					entry.setEmpty();
-				}
-				else
-				{
-					entry.addFromBatch(
-							Locale.forLanguageTag((String) row[1]),
-							row[2]);
-				}
-			}
-		}
-		
-		for (MapLoaderEntry<?> batchEntry: batch.values())
-		{
-			batchEntry.finalizeBatch();
-		}
-		
-		batch.clear();
-	}
-	
+	void load(EntityManager em);
 }

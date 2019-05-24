@@ -18,6 +18,7 @@
  */
 package com.kerbaya.locajapa;
 
+import java.io.Serializable;
 import java.util.Collection;
 
 import javax.persistence.Entity;
@@ -25,8 +26,10 @@ import javax.persistence.Id;
 import javax.persistence.OneToMany;
 
 @Entity
-public class LocalizableString implements Localizable<String>
+public class LocalizableString implements Localizable<String>, Serializable
 {
+	private static final long serialVersionUID = 5951431872378001984L;
+
 	private Long id;
 	private Collection<LocalizedString> localized;
 	

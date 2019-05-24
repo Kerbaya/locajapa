@@ -19,118 +19,83 @@
 package com.kerbaya.locajapa;
 
 import java.util.Collection;
-import java.util.Iterator;
 
-final class ForwardingCollection<V> implements Collection<V>
+abstract class ForwardingCollection<V> extends ForwardingIterable<V> 
+		implements Collection<V>
 {
-	private final Resolver<Collection<V>> supplier;
-	
-	public ForwardingCollection(Resolver<Collection<V>> supplier)
-	{
-		this.supplier = supplier;
-	}
+	private static final long serialVersionUID = -7114061283362475043L;
 
-	@Override
-	public int size()
-	{
-		return supplier.get().size();
-	}
-
-	@Override
-	public boolean isEmpty()
-	{
-		return supplier.get().isEmpty();
-	}
-
-	@Override
-	public boolean contains(Object o)
-	{
-		return supplier.get().contains(o);
-	}
-
-	@Override
-	public Iterator<V> iterator()
-	{
-		return new ForwardingIterator<>(new Resolver<Iterator<V>>() {
-			private static final long serialVersionUID = -6323579844282470895L;
-
-			@Override
-			public Iterator<V> get()
-			{
-				return supplier.get().iterator();
-			}
-		});
-	}
-
-	@Override
-	public Object[] toArray()
-	{
-		return supplier.get().toArray();
-	}
-
-	@Override
-	public <T> T[] toArray(T[] a)
-	{
-		return supplier.get().toArray(a);
-	}
-
-	@Override
-	public boolean add(V e)
-	{
-		return supplier.get().add(e);
-	}
-
-	@Override
-	public boolean remove(Object o)
-	{
-		return supplier.get().remove(o);
-	}
-
-	@Override
-	public boolean containsAll(Collection<?> c)
-	{
-		return supplier.get().containsAll(c);
-	}
-
-	@Override
-	public boolean addAll(Collection<? extends V> c)
-	{
-		return supplier.get().addAll(c);
-	}
-
-	@Override
-	public boolean removeAll(Collection<?> c)
-	{
-		return supplier.get().removeAll(c);
-	}
-
-	@Override
-	public boolean retainAll(Collection<?> c)
-	{
-		return supplier.get().retainAll(c);
-	}
-
-	@Override
-	public void clear()
-	{
-		supplier.get().clear();
-	}
-
-	@Override
-	public boolean equals(Object o)
-	{
-		return supplier.get().equals(o);
-	}
-
-	@Override
-	public int hashCode()
-	{
-		return supplier.get().hashCode();
-	}
+	protected abstract Collection<V> delegate();
 	
 	@Override
-	public String toString()
+	public final int size()
 	{
-		return supplier.get().toString();
+		return delegate().size();
+	}
+
+	@Override
+	public final boolean isEmpty()
+	{
+		return delegate().isEmpty();
+	}
+
+	@Override
+	public final boolean contains(Object o)
+	{
+		return delegate().contains(o);
+	}
+
+	@Override
+	public final Object[] toArray()
+	{
+		return delegate().toArray();
+	}
+
+	@Override
+	public final <T> T[] toArray(T[] a)
+	{
+		return delegate().toArray(a);
+	}
+
+	@Override
+	public final boolean add(V e)
+	{
+		return delegate().add(e);
+	}
+
+	@Override
+	public final boolean remove(Object o)
+	{
+		return delegate().remove(o);
+	}
+
+	@Override
+	public final boolean containsAll(Collection<?> c)
+	{
+		return delegate().containsAll(c);
+	}
+
+	@Override
+	public final boolean addAll(Collection<? extends V> c)
+	{
+		return delegate().addAll(c);
+	}
+
+	@Override
+	public final boolean removeAll(Collection<?> c)
+	{
+		return delegate().removeAll(c);
+	}
+
+	@Override
+	public final boolean retainAll(Collection<?> c)
+	{
+		return delegate().retainAll(c);
+	}
+
+	@Override
+	public final void clear()
+	{
+		delegate().clear();
 	}
 }

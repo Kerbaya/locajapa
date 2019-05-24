@@ -19,11 +19,11 @@
 package com.kerbaya.locajapa;
 
 import java.io.Serializable;
-import java.util.Iterator;
 
-public interface LocalizedResolver<T, L, V> extends Serializable
+public interface EntityHandler<T, L, V> extends Serializable
 {
-	Iterator<? extends L> getLocalized(T localizable);
+	Object getId(T localizable);
+	Iterable<? extends L> getLocalized(T localizable);
 	int getLanguageLevel(L localized);
 	String getLanguageTag(L localized);
 	V getValue(L localized);

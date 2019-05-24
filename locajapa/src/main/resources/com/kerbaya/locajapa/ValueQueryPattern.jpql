@@ -1,4 +1,4 @@
-SELECT l.${idProperty}, le.${valueProperty}
+SELECT l.${idProperty}${valueProperties}
 FROM ${entityName} l
 LEFT JOIN l.${localizedProperty} le
 WHERE

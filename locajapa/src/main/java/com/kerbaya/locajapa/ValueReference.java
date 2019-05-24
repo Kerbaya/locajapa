@@ -32,19 +32,37 @@ public interface ValueReference<V>
 {
 	
 	/**
-	 * Returns the localized value.  If calling this method is avoided until 
-	 * after {@link ValueLoader#load(javax.persistence.EntityManager)} is 
-	 * called, all values are simultaneously loaded in one query.
+	 * <p>Returns the localized value.  How the value is obtained depends on if
+	 * {@link #get()} is called before or after 
+	 * {@link ValueLoader#load(javax.persistence.EntityManager)} is called on 
+	 * the {@link ValueLoader} that generated this instance.</p>
+	 * <dl>
+	 * <dt>Before {@link ValueLoader#load(javax.persistence.EntityManager)}</dt>
+	 * <dd>The value is obtained using the associated {@link EntityHandler}.  If
+	 * the {@link ValueLoader} was not configured with entity handling, an
+	 * {@link IllegalStateException} is thrown.</dd>
+	 * <dt>After {@link ValueLoader#load(javax.persistence.EntityManager)}<dt>
+	 * <dd>The value discovered during the load process is returned</dd>
+	 * </dl>
+	 * <p>In either case, if the localizable instance referenced to 
+	 * {@link ValueLoader#getRef(Object)} or 
+	 * {@link ValueLoader#getRefById(Object)} does not exist, {@link #get()} 
+	 * throws {@link EntityNotFoundException}.</p>
 	 * 
 	 * @return
-	 * the localized value.  {@code null} indicates there is no value for the 
-	 * locale provided to {@link ValueLoader}
+	 * <p>the localized value.  may return {@code null} to indicate that for the
+	 * locale provided to 
+	 * {@link LoaderFactory#createValueLoader(java.util.Locale)}:</p>
+	 * <ul>
+	 * <li>The localized value is {@code null}</li>
+	 * <li>There is no localized value for the provided locale</li>
+	 * </ul>
 	 * 
 	 * @throws IllegalStateException
 	 * the {@link ValueLoader} that generated this instance has not had
 	 * {@link ValueLoader#load(javax.persistence.EntityManager)} called yet,
-	 * and this instance does not support self-loading (it was created with
-	 * {@link ValueLoader#getValue(Class, Object)}).
+	 * and this instance does not support self-loading (it was created without
+	 * entity handling).
 	 * 
 	 * @throws EntityNotFoundException
 	 * a non-existent localizable was referenced for this instance

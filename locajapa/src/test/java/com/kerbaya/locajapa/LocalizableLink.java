@@ -18,38 +18,35 @@
  */
 package com.kerbaya.locajapa;
 
-import java.io.Serializable;
+import java.util.Collection;
 
-final class InstanceValueReference<V> implements ValueReference<V>, Serializable
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.OneToMany;
+
+@Entity
+public class LocalizableLink
 {
-	private static final long serialVersionUID = -2221032715251547293L;
+	private long id;
+	private Collection<LocalizedLink> localized;
 	
-	private static final InstanceValueReference<Void> NULL = 
-			new InstanceValueReference<Void>(null);
-	
-	private final V instance;
-	
-	private InstanceValueReference(V instance)
+	@Id
+	public long getId()
 	{
-		this.instance = instance;
+		return id;
 	}
-
-	@Override
-	public V get()
+	public void setId(long id)
 	{
-		return instance;
+		this.id = id;
 	}
 	
-	@SuppressWarnings("unchecked")
-	public static <V> InstanceValueReference<V> ofNull()
+	@OneToMany
+	public Collection<LocalizedLink> getLocalized()
 	{
-		return (InstanceValueReference<V>) NULL;
+		return localized;
 	}
-
-	public static <V> InstanceValueReference<V> of(V instance)
+	public void setLocalized(Collection<LocalizedLink> localized)
 	{
-		return instance == null ? 
-				InstanceValueReference.<V>ofNull() 
-				: new InstanceValueReference<V>(instance);
+		this.localized = localized;
 	}
 }

@@ -28,6 +28,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -48,7 +49,7 @@ public class ExecuteTriggerDriver implements Driver
 	
 	public static void setUrlPrefix(String urlPrefix)
 	{
-		if (URL_PREFIX != null)
+		if (URL_PREFIX != null && !Objects.equals(URL_PREFIX, urlPrefix))
 		{
 			throw new IllegalStateException("urlPrefix already set");
 		}

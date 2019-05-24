@@ -22,13 +22,19 @@ import javax.persistence.Basic;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
 import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
+import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
 
-@SuppressWarnings("serial")
 @Entity
-public class LocalizedString extends MappedLocalized<String>
+@Table(uniqueConstraints=@UniqueConstraint(
+		columnNames={"languageTag", "localizable_id"}))
+public class LocalizedString extends MappedLocalized<String> 
 {
+	private static final long serialVersionUID = -1349943298976646133L;
+
 	private Long id;
 	private LocalizableString localizable;
 	private String value;
@@ -44,6 +50,7 @@ public class LocalizedString extends MappedLocalized<String>
 	}
 	
 	@ManyToOne(optional=false, fetch=FetchType.LAZY)
+	@JoinColumn(name="localizable_id")
 	public LocalizableString getLocalizable()
 	{
 		return localizable;

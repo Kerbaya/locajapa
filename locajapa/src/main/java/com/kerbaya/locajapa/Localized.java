@@ -32,11 +32,6 @@ import javax.persistence.Transient;
  */
 public interface Localized<T>
 {
-	/**
-	 * The minimum length that should be considered for 
-	 * {@link #getLanguageTag()} (see RFC-5646 4.4.1)
-	 */
-	int LANGUAGE_TAG_LENGTH = 35;
 	
 	/**
 	 * Returns the BCP47 language tag representing the locale.  Use 

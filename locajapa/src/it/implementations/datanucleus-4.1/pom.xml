@@ -18,7 +18,7 @@
 				<artifactId>maven-failsafe-plugin</artifactId>
 				<version>3.0.0-M3</version>
 				<configuration>
-					<argLine>-javaagent:${project.build.directory}/dependency/datanucleus-core.jar=-api=JPA,com.kerbaya.locajapa.MappedLocalized,com.kerbaya.locajapa.LocalizableString,com.kerbaya.locajapa.LocalizedString</argLine>
+					<argLine>-javaagent:${project.build.directory}/dependency/datanucleus-core.jar=-api=JPA,com.kerbaya.locajapa.MappedLocalized,com.kerbaya.locajapa.LocalizableString,com.kerbaya.locajapa.LocalizedString,com.kerbaya.locajapa.LocalizableLink,com.kerbaya.locajapa.LocalizedLink</argLine>
 					<classpathDependencyExcludes>
 						<classpathDependencyExclude>org.datanucleus:datanucleus-core</classpathDependencyExclude>
 					</classpathDependencyExcludes>

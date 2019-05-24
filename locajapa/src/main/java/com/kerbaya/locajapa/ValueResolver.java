@@ -18,48 +18,55 @@
  */
 package com.kerbaya.locajapa;
 
+import java.util.Iterator;
 import java.util.Set;
 
-final class ValueResolver<V> implements Resolver<V>
+final class ValueResolver<T, V> implements Resolver<V>
 {
+	private static final long serialVersionUID = 401859217065373792L;
 
-	private static final long serialVersionUID = 5557722038223945717L;
-	
+	private final EntityHandler<? super T, ?, ? extends V> entityHandler;
+	private final T localizable;
 	private final Set<String> candidateLanguageTags;
-	private final Localizable<? extends V> localizable;
 	
 	public ValueResolver(
-			Set<String> candidateLanguageTags,
-			Localizable<? extends V> localizable)
+			EntityHandler<? super T, ?, ? extends V> entityHandler,
+			T localizable, 
+			Set<String> candidateLanguageTags)
 	{
-		this.candidateLanguageTags = candidateLanguageTags;
+		this.entityHandler = entityHandler;
 		this.localizable = localizable;
+		this.candidateLanguageTags = candidateLanguageTags;
 	}
-	
-	@Override
-	public V get()
+
+	public static <T, V> V resolve(
+			EntityHandler<? super T, ?, ? extends V> entityHandler,
+			T localizable,
+			Set<String> candidateLanguageTags)
 	{
-		return resolve(candidateLanguageTags, localizable);
-	}
-	
-	public static <V> V resolve(
-			Set<String> candidateLanguageTags, 
-			Localizable<? extends V> localizable)
-	{
+		Iterator<Localized<V>> iter = LocalizedIterator.create(
+				entityHandler, localizable);
+		
 		int matchLanguageLevel = -1;
-		Localized<? extends V> match = null;
-		for (Localized<? extends V> localized: localizable.getLocalized())
+		Localized<V> match = null;
+		while (iter.hasNext())
 		{
-			int languageLevel = localized.getLanguageLevel();
+			Localized<V> next = iter.next();
+			int languageLevel = next.getLanguageLevel();
 			if ((match == null || languageLevel > matchLanguageLevel)
 					&& candidateLanguageTags.contains(
-							localized.getLanguageTag()))
+							next.getLanguageTag()))
 			{
-				match = localized;
+				match = next;
 				matchLanguageLevel = languageLevel;
 			}
 		}
 		return match == null ? null : match.getValue();
 	}
 	
+	@Override
+	public V get()
+	{
+		return resolve(entityHandler, localizable, candidateLanguageTags);
+	}
 }

@@ -18,7 +18,29 @@
  */
 package com.kerbaya.locajapa;
 
-public interface IdResolver<T>
+import java.io.Serializable;
+
+abstract class Forwarding implements Serializable
 {
-	Object getId(T entity);
+	private static final long serialVersionUID = -3545096005005180655L;
+
+	protected abstract Object delegate();
+	
+	@Override
+	public final String toString()
+	{
+		return delegate().toString();
+	}
+	
+	@Override
+	public final int hashCode()
+	{
+		return delegate().hashCode();
+	}
+	
+	@Override
+	public final boolean equals(Object obj)
+	{
+		return delegate().equals(obj);
+	}
 }

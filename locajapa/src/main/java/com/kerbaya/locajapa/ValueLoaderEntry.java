@@ -22,16 +22,15 @@ import java.io.Serializable;
 
 import javax.persistence.EntityNotFoundException;
 
-final class LazyValueReference<V> implements ValueReference<V>, Serializable
+final class ValueLoaderEntry<V> implements ValueReference<V>, Serializable
 {
 
 	private static final long serialVersionUID = -3737835233743967663L;
 
 	protected Resolver<V> preLoadResolver;
 	protected V value;
-	protected boolean exists;
 	
-	public LazyValueReference(Resolver<V> preLoadResolver)
+	public ValueLoaderEntry(Resolver<V> preLoadResolver)
 	{
 		this.preLoadResolver = preLoadResolver;
 	}
@@ -44,17 +43,12 @@ final class LazyValueReference<V> implements ValueReference<V>, Serializable
 			try
 			{
 				value = preLoadResolver.get();
-				exists = true;
 			}
 			catch (EntityNotFoundException e)
 			{
 				value = null;
-				exists = false;
 			}
-		}
-		if (!exists)
-		{
-			throw new EntityNotFoundException();
+			preLoadResolver = null;
 		}
 		return value;
 	}
@@ -64,20 +58,10 @@ final class LazyValueReference<V> implements ValueReference<V>, Serializable
 		return preLoadResolver == null;
 	}
 	
-	@SuppressWarnings("unchecked")
-	public void set(Object value)
+	public void set(V value)
 	{
 		assert preLoadResolver != null;
-		this.value = (V) value;
-		exists = true;
+		this.value = value;
 		preLoadResolver = null;
 	}
-	public void setNotExists()
-	{
-		assert preLoadResolver != null;
-		value = null;
-		exists = false;
-		preLoadResolver = null;
-	}
-
 }

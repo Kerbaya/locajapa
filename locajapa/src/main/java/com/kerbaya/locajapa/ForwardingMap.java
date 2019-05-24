@@ -18,128 +18,109 @@
  */
 package com.kerbaya.locajapa;
 
-import java.io.Serializable;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
-abstract class ForwardingMap<K, V> implements Map<K, V>, Serializable
+abstract class ForwardingMap<K, V> extends Forwarding implements Map<K, V>
 {
-	private static final long serialVersionUID = -2248653975026920019L;
+	private static final long serialVersionUID = 271691668964822187L;
 
-	protected abstract Map<K, V> build();
+	protected abstract Map<K, V> delegate();
 	
 	@Override
-	public int size()
+	public final int size()
 	{
-		return build().size();
+		return delegate().size();
 	}
 
 	@Override
-	public boolean isEmpty()
+	public final boolean isEmpty()
 	{
-		return build().isEmpty();
+		return delegate().isEmpty();
 	}
 
 	@Override
-	public boolean containsKey(Object key)
+	public final boolean containsKey(Object key)
 	{
-		return build().containsKey(key);
+		return delegate().containsKey(key);
 	}
 
 	@Override
-	public boolean containsValue(Object value)
+	public final boolean containsValue(Object value)
 	{
-		return build().containsValue(value);
+		return delegate().containsValue(value);
 	}
 
 	@Override
-	public V get(Object key)
+	public final V get(Object key)
 	{
-		return build().get(key);
+		return delegate().get(key);
 	}
 
 	@Override
-	public V put(K key, V value)
+	public final V put(K key, V value)
 	{
-		return build().put(key, value);
+		return delegate().put(key, value);
 	}
 
 	@Override
-	public V remove(Object key)
+	public final V remove(Object key)
 	{
-		return build().remove(key);
+		return delegate().remove(key);
 	}
 
 	@Override
-	public void putAll(Map<? extends K, ? extends V> m)
+	public final void putAll(Map<? extends K, ? extends V> m)
 	{
-		build().putAll(m);
+		delegate().putAll(m);
 	}
 
 	@Override
-	public void clear()
+	public final void clear()
 	{
-		build().clear();
+		delegate().clear();
 	}
 
 	@Override
-	public Set<K> keySet()
+	public final Set<K> keySet()
 	{
-		return new ForwardingSet<>(new Resolver<Set<K>>() {
-			private static final long serialVersionUID = 4637721532132253875L;
+		return new ForwardingSet<K>() {
+			private static final long serialVersionUID = 437084226870007867L;
 
 			@Override
-			public Set<K> get()
+			protected Set<K> delegate()
 			{
-				return build().keySet();
+				return ForwardingMap.this.delegate().keySet();
 			}
-		});
+		};
 	}
 
 	@Override
-	public Collection<V> values()
+	public final Collection<V> values()
 	{
-		return new ForwardingCollection<>(new Resolver<Collection<V>>() {
-			private static final long serialVersionUID = -812972076526896219L;
+		return new ForwardingCollection<V>() {
+			private static final long serialVersionUID = -758563396594312230L;
 
 			@Override
-			public Collection<V> get()
+			protected Collection<V> delegate()
 			{
-				return build().values();
+				return ForwardingMap.this.delegate().values();
 			}
-		});
+		};
 	}
 
 	@Override
-	public Set<Entry<K, V>> entrySet()
+	public final Set<Entry<K, V>> entrySet()
 	{
-		return new ForwardingSet<>(new Resolver<Set<Entry<K, V>>>() {
-			private static final long serialVersionUID = 536537667892154886L;
+		return new ForwardingSet<Entry<K, V>>(){
+			private static final long serialVersionUID = -6709545522290255290L;
 
 			@Override
-			public Set<Entry<K, V>> get()
+			protected Set<Entry<K, V>> delegate()
 			{
-				return build().entrySet();
+				return ForwardingMap.this.delegate().entrySet();
 			}
-		});
-	}
-
-	@Override
-	public boolean equals(Object o)
-	{
-		return build().equals(o);
-	}
-
-	@Override
-	public int hashCode()
-	{
-		return build().hashCode();
-	}
-
-	@Override
-	public String toString()
-	{
-		return build().toString();
+		};
 	}
 }
