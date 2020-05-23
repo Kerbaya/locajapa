@@ -83,7 +83,8 @@ public class NonDbTest
 			.build();
 	
 	@SuppressWarnings("unchecked")
-	private static <T> T serialize(T in) throws ClassNotFoundException, IOException
+	private static <T> T serialize(T in) 
+			throws ClassNotFoundException, IOException
 	{
 		byte[] ba;
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -157,7 +158,7 @@ public class NonDbTest
 		serializeValue(false);
 		serializeValue(true);
 		ValueReference<String> vr = serialize(
-				new LocalizableLoader().getRef(LocalizableString.class, 6));
+				new LocalizableLoader().<LocalizableString, String>getRef(LocalizableString.class, 6));
 		boolean thrown = false;
 		try
 		{
